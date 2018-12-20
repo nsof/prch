@@ -21,9 +21,14 @@ class Filter:
       self.lng = lng
       self.radius = radius if radius != None else 1
       self.days_ago = days_ago if days_ago != None else 183
-      self.accuracy = ""
-      self.postal_code = "Not found"
 
+
+class GeocodeResponse:
+   def __init__(self):
+      self.lat = None
+      self.lng = None
+      self.accuracy = None
+      self.postal_code = "Not found"
 
 # ===========================================================================================================
 def get_file_writer():
@@ -63,17 +68,22 @@ def geocode(filter):
    response = urllib.request.urlopen(req_url)
    response_string = response.read()
    json_results = json.loads(response_string)
+
    if json_results['status'] != 'OK':
       print(f"geocoding location '{filter.location}' failed with status: {json_results['status']}")
-      return
+      return None
    
    geometry = json_results["results"][0]["geometry"]
-   filter.lat = geometry["location"]["lat"]
-   filter.lng = geometry["location"]["lng"]
-   filter.accuracy = geometry["location_type"]
+
+   geocode_response = GeocodeResponse()
+   geocode_response.lat = geometry["location"]["lat"]
+   geocode_response.lng = geometry["location"]["lng"]
+   geocode_response.accuracy = geometry["location_type"]
    for address_component in json_results["results"][0]["address_components"]:
       if address_component["types"][0] == "postal_code":
-         filter.postal_code = address_component["long_name"]
+         geocode_response.postal_code = address_component["long_name"]
+
+   return geocode_response
 
 # ===========================================================================================================
 def search_listings_page(filter, page_size, page_number):
@@ -143,12 +153,6 @@ def search_listings_page(filter, page_size, page_number):
       listings = json_results['response']['listings']
       #filter listings based on date
       listings = [listing for listing in listings if int(listing['updated_in_days']) <= filter.days_ago]
-
-      #add location
-      for listing in listings:
-         listing["location"] = filter.location
-         listing["postal_code"] = filter.postal_code
-         listing["accuracy"] = filter.accuracy
 
       number_of_listings = json_results['response']['total_results']
 
@@ -227,16 +231,20 @@ def get_listings():
          radius = None if query["radius"] == "" else float(query["radius"])
          filter = Filter(location, size_min, size_max, price_min, price_max, radius=radius)
 
-         geocode(filter)
-         if filter.lat == None: #geocoding failed
+         geocode_response = geocode(filter)
+         if geocode_response == None:  # geocoding failed
             continue
 
+         filter.lat = geocode_response.lat
+         filter.lng = geocode_response.lng
          listings = search_all_listings(filter)
-         # if len(listings) == 0: # try with a wider search radius
-         #    filter.radius = 1.0
-         #    listings = search_all_listings(filter)
 
          if len(listings) != 0:
+            for listing in listings:
+               listing["location"] = location
+               listing["postal_code"] = geocode_response.postal_code
+               listing["accuracy"] = geocode_response.accuracy
+
             file_writer.writerows(listings)
             output_file.flush()
             print("    Saved to file")
