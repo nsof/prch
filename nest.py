@@ -261,8 +261,22 @@ def get_listings():
 
    return
 
+
+# def get_cadastral_data():
+#    req_url = "https://es.goolzoom.com/el-propietario/GetGeo.aspx?lat=41.39691111104957&lng=2.147870242713907&_=1545293012341"
+#    response = urllib.request.urlopen(req_url)
+#    response_string = response.read()
+#    json_results = json.loads(response_string)
+
+#    req_url = "https://es.goolzoom.com/el-propietario/GetData.aspx?localId=8833204DF2883D&idMunicipio=8900&_=1545293012342"
+#    response = urllib.request.urlopen(req_url)
+#    response_string = response.read()
+#    json_results = json.loads(response_string)
+#    pass
+
 # ===========================================================================================================
 def main():
+   # get_cadastral_data()
    get_listings()
    return ""
 
