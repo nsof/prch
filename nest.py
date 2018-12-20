@@ -3,6 +3,7 @@ import csv
 import datetime
 import re
 import math
+import requests
 import urllib
 from urllib.parse import urlencode
 from urllib.request import urlopen
@@ -34,7 +35,7 @@ class GeocodeResponse:
 def get_file_writer():
    file_name = "listings." + datetime.datetime.now().strftime("%Y-%m-%dT%H%M%S") + ".csv"
    output_file = open(file_name, "w", newline="", encoding="utf-8")
-   field_names = ["location", "postal_code", "accuracy", "price", "size", "updated_in_days", "lister_url", "lister_name"
+   field_names = ["location", "postal_code", "accuracy", "catastro", "price", "size", "updated_in_days", "lister_url", "lister_name"
                   "bathroom_number", "bedroom_number", "car_spaces", "commission",
                   "construction_year", "datasource_name", "floor", "keywords", "latitude",
                   "listing_type", "location_accuracy", "longitude",
@@ -61,13 +62,16 @@ def get_queries(file_name):
 # ===========================================================================================================
 
 def geocode(filter):
-   url = 'https://maps.googleapis.com/maps/api/geocode/json?'
+   # url = 'https://maps.googleapis.com/maps/api/geocode/json?'
+   # parameters = {"address": f"{filter.location}", "key": "AIzaSyDto4pHmSEjqEzBZZZXBI7GjJnsBqedGPo"}
+   # parameters = urllib.parse.urlencode(parameters)
+   # req_url = url + parameters
+   # response = urllib.request.urlopen(req_url)
+   # response_string = response.read()
+   url = 'https://maps.googleapis.com/maps/api/geocode/json'
    parameters = {"address": f"{filter.location}", "key": "AIzaSyDto4pHmSEjqEzBZZZXBI7GjJnsBqedGPo"}
-   parameters = urllib.parse.urlencode(parameters)
-   req_url = url + parameters
-   response = urllib.request.urlopen(req_url)
-   response_string = response.read()
-   json_results = json.loads(response_string)
+   response = requests.get(url, params = parameters)
+   json_results = response.json()
 
    if json_results['status'] != 'OK':
       print(f"geocoding location '{filter.location}' failed with status: {json_results['status']}")
@@ -84,6 +88,100 @@ def geocode(filter):
          geocode_response.postal_code = address_component["long_name"]
 
    return geocode_response
+
+
+class Nestoria:
+   __session = None
+   __tried = False
+
+   @staticmethod
+   def try_to_login():
+      session = None
+      try:
+         print ("Trying to sign into nestoria...")
+         session = requests.Session()
+         url = "https://es.goolzoom.com/usuario/login/SignIn.aspx"
+         headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36",
+            "Referer": "https://es.goolzoom.com/mapas/",
+            "Host": "es.goolzoom.com"
+         }
+         
+         response = session.get(url)
+         vs_value = find_value('id="__VIEWSTATE"', response.text)
+         vsg_value = find_value('id="__VIEWSTATEGENERATOR"', response.text)
+
+         url = "https://es.goolzoom.com/usuario/login/SignIn.aspx?ReturnUrl=%2fmapas%2f"
+         headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36",
+            "Referer": "https://es.goolzoom.com/usuario/login/SignIn.aspx?ReturnUrl=%2fmapas%2f",
+            "Origin": "https://es.goolzoom.com"
+         }
+         parameters = {
+            "ReturnUrl" : "/mapas/"
+         }
+         data = {
+            "__VIEWSTATE" : vs_value,
+            "__VIEWSTATEGENERATOR" : vsg_value,
+            "email" : "yoed.dotan@gmail.com",
+            "password" : "shafan10"
+         }
+         response = session.post(url, params = parameters, headers=headers, data=data)
+         if "SignIn.aspx" in response.url:
+            print ("Probably failed to sign into nestoria")
+            # return None
+
+      except:
+         print ("Failed signing into nestoria")
+         session = None
+         pass
+
+      return session
+
+
+   @staticmethod
+   def get_cadastral_data(lat, lng):
+      if Nestoria.__tried == False:
+         Nestoria.__tried = True
+         Nestoria.__session = Nestoria.try_to_login()
+
+      if Nestoria.__session == None:
+         return None
+
+      try:
+         url = "https://es.goolzoom.com/el-propietario/GetGeo.aspx"
+         headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36",
+            "Referer": "https://es.goolzoom.com/el-propietario/",
+            "Host": "es.goolzoom.com"
+         }
+         parameters = {
+            "lat" : lat,
+            "lng" : lng
+         }
+
+         response = Nestoria.__session.get(url, params = parameters, headers=headers)
+         if "SignIn.aspx" in response.url:
+            # signed out and could not sign in
+            Nestoria.__session = None
+            cadastral_reference = None
+         else:            
+            json_results = response.json()
+            cadastral_reference = json_results["features"][0]["properties"]["l"]
+      except:
+         cadastral_reference = None
+         pass
+
+      return cadastral_reference
+
+   
+def find_value(key, text):
+   n = text.find(key)
+   start = text.find('value="', n) + len('value="')
+   end = text.find('"', start)
+   value = text[start:end]
+   return value
+
 
 # ===========================================================================================================
 def search_listings_page(filter, page_size, page_number):
@@ -240,10 +338,13 @@ def get_listings():
          listings = search_all_listings(filter)
 
          if len(listings) != 0:
+            cadastral_reference = Nestoria.get_cadastral_data(geocode_response.lat, geocode_response.lng)
+
             for listing in listings:
                listing["location"] = location
                listing["postal_code"] = geocode_response.postal_code
                listing["accuracy"] = geocode_response.accuracy
+               listing["catastro"] = cadastral_reference
 
             file_writer.writerows(listings)
             output_file.flush()
@@ -261,23 +362,10 @@ def get_listings():
 
    return
 
-
-# def get_cadastral_data():
-#    req_url = "https://es.goolzoom.com/el-propietario/GetGeo.aspx?lat=41.39691111104957&lng=2.147870242713907&_=1545293012341"
-#    response = urllib.request.urlopen(req_url)
-#    response_string = response.read()
-#    json_results = json.loads(response_string)
-
-#    req_url = "https://es.goolzoom.com/el-propietario/GetData.aspx?localId=8833204DF2883D&idMunicipio=8900&_=1545293012342"
-#    response = urllib.request.urlopen(req_url)
-#    response_string = response.read()
-#    json_results = json.loads(response_string)
-#    pass
-
 # ===========================================================================================================
 def main():
-   # get_cadastral_data()
-   get_listings()
+   cadastral_reference = Nestoria.get_cadastral_data(41.3792632, 2.1752677)
+   # get_listings()
    return ""
 
 if __name__ == "__main__":
