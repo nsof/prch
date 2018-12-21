@@ -5,6 +5,9 @@ import re
 import math
 import requests
 import urllib
+import os
+import pickle
+
 from urllib.parse import urlencode
 from urllib.request import urlopen
 
@@ -90,35 +93,72 @@ def geocode(filter):
    return geocode_response
 
 
-class Nestoria:
+class GZ:
    __session = None
    __tried = False
+   __cookies_file_name = "cookies.txt"
+
+   @staticmethod
+   def save_cookies():
+      with open(GZ.__cookies_file_name, 'wb', encoding="utf8") as f:
+         pickle.dump(GZ.__session.cookies, f)
+
+
+   @staticmethod
+   def load_cookies():
+      if not os.path.isfile(GZ.__cookies_file_name):
+        return
+
+      with open(GZ.__cookies_file_name, 'r', encoding="utf8") as f:
+         GZ.__session.cookies.update(pickle.load(f))
+
+
+   @staticmethod
+   def get_session():
+      if GZ.__session != None:
+         return GZ.__session
+
+      GZ.__session = requests.Session()
+      GZ.__session.cookies.clear()
+      GZ.load_cookies()
+      GZ.__session.headers.clear()
+      GZ.__session.headers.update({
+         "Host": "es.goolzoom.com",
+         "Connection": "keep-alive",
+         "Upgrade-Insecure-Requests": "1",
+         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36",
+         "Accept" : "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+         "Accept-Encoding": "gzip, deflate, br",
+         "Referer": "https://es.goolzoom.com/mapas/",
+         "Accept-Language" : "en-GB,en;q=0.9,en-US;q=0.8,he;q=0.7"
+      })
+
+      return GZ.__session
+
 
    @staticmethod
    def try_to_login():
-      session = None
+      if GZ.__tried == True:
+         return False
+
+      GZ.__tried = True
+
+      print ("Trying to sign into Goolzoom...")
       try:
-         print ("Trying to sign into nestoria...")
-         session = requests.Session()
-         url = "https://es.goolzoom.com/usuario/login/SignIn.aspx"
-         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36",
-            "Referer": "https://es.goolzoom.com/mapas/",
-            "Host": "es.goolzoom.com"
-         }
-         
-         response = session.get(url)
+         url = "https://es.goolzoom.com/mapas/"
+         response = GZ.get_session().get(url)
+         if not "SignIn.aspx" in response.url: #already signed in
+            return True
+
          vs_value = find_value('id="__VIEWSTATE"', response.text)
          vsg_value = find_value('id="__VIEWSTATEGENERATOR"', response.text)
-
-         url = "https://es.goolzoom.com/usuario/login/SignIn.aspx?ReturnUrl=%2fmapas%2f"
-         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36",
+         url = response.url
+         parameters = { }
+         headers = { 
+            "Origin": "https://es.goolzoom.com",
             "Referer": "https://es.goolzoom.com/usuario/login/SignIn.aspx?ReturnUrl=%2fmapas%2f",
-            "Origin": "https://es.goolzoom.com"
-         }
-         parameters = {
-            "ReturnUrl" : "/mapas/"
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Cache-Control": "max-age=0"
          }
          data = {
             "__VIEWSTATE" : vs_value,
@@ -126,51 +166,52 @@ class Nestoria:
             "email" : "yoed.dotan@gmail.com",
             "password" : "shafan10"
          }
-         response = session.post(url, params = parameters, headers=headers, data=data)
+         response = GZ.get_session().post(url, params = parameters, headers = headers, data=data)
          if "SignIn.aspx" in response.url:
-            print ("Probably failed to sign into nestoria")
-            # return None
+            print ("Failed to sign in")
+            return False
 
-      except:
-         print ("Failed signing into nestoria")
-         session = None
-         pass
+         GZ.save_cookies()
+         return True
 
-      return session
+      except Exception as e:
+         print ("Failed to sign in to Goolzoom")
+         print ("Error message: ", e)
+
+      return False
 
 
    @staticmethod
    def get_cadastral_data(lat, lng):
-      if Nestoria.__tried == False:
-         Nestoria.__tried = True
-         Nestoria.__session = Nestoria.try_to_login()
-
-      if Nestoria.__session == None:
-         return None
-
+      cadastral_reference = None
       try:
          url = "https://es.goolzoom.com/el-propietario/GetGeo.aspx"
-         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36",
-            "Referer": "https://es.goolzoom.com/el-propietario/",
-            "Host": "es.goolzoom.com"
-         }
-         parameters = {
-            "lat" : lat,
-            "lng" : lng
-         }
+         headers = { "Referer": "https://es.goolzoom.com/el-propietario/",}
+         parameters = { "lat" : lat,"lng" : lng,}
 
-         response = Nestoria.__session.get(url, params = parameters, headers=headers)
+         response = GZ.get_session().get(url, params = parameters, headers=headers)
+
          if "SignIn.aspx" in response.url:
-            # signed out and could not sign in
-            Nestoria.__session = None
-            cadastral_reference = None
-         else:            
+            if GZ.try_to_login():
+               response = GZ.get_session().get(url, params = parameters, headers=headers)
+            else:
+               return cadastral_reference
+
+         try:
             json_results = response.json()
-            cadastral_reference = json_results["features"][0]["properties"]["l"]
-      except:
+            if len (json_results["features"]) > 0:
+               cadastral_reference = json_results["features"][0]["properties"]["l"]
+            else:
+               print ("Failed to get catasral reference number. Perhaps location is not accurate")
+               print (f"Url was {response.request.url}")
+         except ValueError as e:
+            print (f"Failed to get catasral reference number. Server response was unexpected")
+            print (f"Response was {'empty' if response.text=='' else response.text}")
+
+      except Exception as e:
+         print ("Failed to get catasral reference number")
+         print ("Error message: ", e)
          cadastral_reference = None
-         pass
 
       return cadastral_reference
 
@@ -338,7 +379,7 @@ def get_listings():
          listings = search_all_listings(filter)
 
          if len(listings) != 0:
-            cadastral_reference = Nestoria.get_cadastral_data(geocode_response.lat, geocode_response.lng)
+            cadastral_reference = GZ.get_cadastral_data(geocode_response.lat, geocode_response.lng)
 
             for listing in listings:
                listing["location"] = location
@@ -364,7 +405,11 @@ def get_listings():
 
 # ===========================================================================================================
 def main():
-   cadastral_reference = Nestoria.get_cadastral_data(41.3792632, 2.1752677)
+   cadastral_reference = GZ.get_cadastral_data(41.39409684378864, 2.1487222098593293)
+   print ("cadastral_reference =", cadastral_reference)
+
+   cadastral_reference = GZ.get_cadastral_data(41.3792632, 2.1752677)
+   print ("cadastral_reference =", cadastral_reference)
    # get_listings()
    return ""
 
