@@ -8,9 +8,6 @@ import urllib
 import os
 import pickle
 
-from urllib.parse import urlencode
-from urllib.request import urlopen
-
 
 ############################################################################################################
 # ===========================================================================================================
@@ -92,130 +89,68 @@ def geocode(filter):
 
    return geocode_response
 
-   
-def find_value(key, text):
-   n = text.find(key)
-   start = text.find('value="', n) + len('value="')
-   end = text.find('"', start)
-   value = text[start:end]
-   return value
 
-class GZ:
-   __session = None
-   __tried = False
-   __cookies_file_name = "cookies.txt"
+class Sedecatastro:
 
    @staticmethod
-   def save_cookies():
-      with open(GZ.__cookies_file_name, 'wb') as f:
-         pickle.dump(GZ.__session.cookies, f)
+   def find_cadastral_reference_in_text(text):
+      start = text.find("PARCELA CATASTRAL")
+      if start == -1:
+         return None
 
+      start = start + len("PARCELA CATASTRAL")
+      end = text.find('<', start)
 
-   @staticmethod
-   def load_cookies():
-      if not os.path.isfile(GZ.__cookies_file_name):
-        return
-
-      with open(GZ.__cookies_file_name, 'rb') as f:
-         GZ.__session.cookies.update(pickle.load(f))
-
+      cadastral_reference = text[start:end]
+      cadastral_reference = cadastral_reference.strip()
+      return cadastral_reference
 
    @staticmethod
-   def get_session():
-      if GZ.__session != None:
-         return GZ.__session
+   def find_cadastral_reference_in_redirected_url(text):
+      start = text.find("RefC=")
+      if start == -1:
+         return None
 
-      GZ.__session = requests.Session()
-      GZ.__session.cookies.clear()
-      GZ.load_cookies()
-      GZ.__session.headers.clear()
-      GZ.__session.headers.update({
-         "Host": "es.goolzoom.com",
-         "Connection": "keep-alive",
-         "Upgrade-Insecure-Requests": "1",
-         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36",
-         "Accept" : "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
-         "Accept-Encoding": "gzip, deflate, br",
-         "Referer": "https://es.goolzoom.com/mapas/",
-         "Accept-Language" : "en-GB,en;q=0.9,en-US;q=0.8,he;q=0.7"
-      })
+      start = start + len("RefC=")
+      end = text.find('&', start)
 
-      return GZ.__session
+      cadastral_reference = text[start:end]
+      cadastral_reference = cadastral_reference.strip()
+      return cadastral_reference
+
 
 
    @staticmethod
-   def try_to_login(prev_response = None):
-      if GZ.__tried == True:
-         return False
-
-      GZ.__tried = True
-
-      print ("Trying to sign into Goolzoom...")
+   def get_cadastral_reference(lat, lng):
       try:
-         if prev_response == None:
-            url = "https://es.goolzoom.com/mapas/"
-            prev_response = GZ.get_session().get(url)
-
-         vs_value = find_value('id="__VIEWSTATE"', prev_response.text)
-         vsg_value = find_value('id="__VIEWSTATEGENERATOR"', prev_response.text)
-         parameters = { }
+         url = "https://www1.sedecatastro.gob.es/CYCBienInmueble/OVCListaBienes.aspx"
          headers = { 
-            "Origin": "https://es.goolzoom.com",
-            "Referer": prev_response.url,
-            "Content-Type": "application/x-www-form-urlencoded",
-            "Cache-Control": "max-age=0"
+            # "Accept" : "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+            # "Accept-Encoding" : "gzip, deflate, br"
+            # Accept-Language: en-GB,en;q=0.9,en-US;q=0.8,he;q=0.7
+            # Connection: keep-alive
+            # Cookie: ASP.NET_SessionId=kirnbuffprhok1yfobovdpk5; Lenguaje=es
+            # Host: www1.sedecatastro.gob.es
+            # Upgrade-Insecure-Requests: 1
+            "User-Agent" : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36"
          }
-         data = {
-            "__VIEWSTATE" : vs_value,
-            "__VIEWSTATEGENERATOR" : vsg_value,
-            "email" : "yoed.dotan@gmail.com",
-            "password" : "shafan10"
+         parameters = { 
+               "latitud" : lat, "longitud" : lng, 
+               "pest" : "coordenadas", "huso" : "0", "tipoCoordenadas" : "2", "TipUR" : "Coor",
          }
-         response = GZ.get_session().post(prev_response.url, params = parameters, headers = headers, data=data)
-         if "SignIn.aspx" in response.url:
-            print ("Failed to sign in")
-            return False
 
-         GZ.save_cookies()
-         return True
+         session = requests.Session()
+         response = session.get(url, params = parameters, headers=headers)
+         
 
-      except Exception as e:
-         print ("Failed to sign in to Goolzoom")
-         print ("Error message: ", e)
+         if response.status_code != 200:
+            print (f"Failed to get catasral reference number from {response.request.url}")
+            return None
 
-      return False
-
-
-   @staticmethod
-   def get_cadastral_data(lat, lng):
-      cadastral_reference = None
-      try:
-         url = "https://es.goolzoom.com/el-propietario/GetGeo.aspx"
-         headers = { "Referer": "https://es.goolzoom.com/el-propietario/",}
-         parameters = { "lat" : lat,"lng" : lng,}
-
-         response = GZ.get_session().get(url, params = parameters, headers=headers)
-
-         if "SignIn.aspx" in response.url:
-            if GZ.try_to_login(response):
-               response = GZ.get_session().get(url, params = parameters, headers=headers)
-            else:
-               return None
-
-         if response.text == '':
-            print ("Failed to get catasral reference number. Probably failed to login")
-            return cadastral_reference
-
-         try:
-            json_results = response.json()
-            if len (json_results["features"]) > 0:
-               cadastral_reference = json_results["features"][0]["properties"]["l"]
-            else:
-               print ("Failed to get catasral reference number. Perhaps location is not accurate")
-               print (f"Url was {response.request.url}")
-         except ValueError as e:
-            print (f"Failed to get catasral reference number. Server's response was {'empty' if response.text=='' else response.text}")
-            cadastral_reference = None
+         if len(response.history) > 0:
+            cadastral_reference = Sedecatastro.find_cadastral_reference_in_redirected_url(response.url)
+         else:
+            cadastral_reference = Sedecatastro.find_cadastral_reference_in_text(response.text)
 
       except Exception as e:
          print ("Failed to get catasral reference number")
@@ -223,54 +158,6 @@ class GZ:
          cadastral_reference = None
 
       return cadastral_reference
-
-
-# class Sedecatastro:
-
-#    @staticmethod
-#    def find_cadastral_reference_in_text(text):
-#       n = text.find("PARCELA CATASTRAL")
-#       if n == -1:
-#          return None
-
-#       start = text.find('value="', n) + len('value="')
-#       end = text.find('"', start)
-#       value = text[start:end]
-#       return value
-
-#    @staticmethod
-#    def cadastral_reference(lat, lng):
-#       try:
-#          url = "https://www1.sedecatastro.gob.es/CYCBienInmueble/OVCListaBienes.aspx"
-#          headers = { 
-#             # "Accept" : "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
-#             # "Accept-Encoding" : "gzip, deflate, br"
-#             # Accept-Language: en-GB,en;q=0.9,en-US;q=0.8,he;q=0.7
-#             # Connection: keep-alive
-#             # Cookie: ASP.NET_SessionId=kirnbuffprhok1yfobovdpk5; Lenguaje=es
-#             # Host: www1.sedecatastro.gob.es
-#             # Upgrade-Insecure-Requests: 1
-#             "User-Agent" : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36"
-#          }
-#          parameters = { 
-#                "latitud" : lat, "longitud" : lng, 
-#                "pest" : "coordenadas", "huso" : "0", "tipoCoordenadas" : "2", "TipUR" : "Coor",
-#          }
-#          response = requests.get(url, params = parameters, headers=headers)
-
-#          if response.status_code != 200:
-#             print (f"Failed to get catasral reference number from {response.request.url}")
-#             return None
-
-#          if "SignIn.aspx" in response.url:
-         
-
-#       except Exception as e:
-#          print ("Failed to get catasral reference number")
-#          print ("Error message: ", e)
-#          cadastral_reference = None
-
-#       return cadastral_reference
 
 
 
@@ -429,7 +316,11 @@ def get_listings():
          listings = search_all_listings(filter)
 
          if len(listings) != 0:
-            cadastral_reference = GZ.get_cadastral_data(geocode_response.lat, geocode_response.lng)
+            cadastral_reference = Sedecatastro.get_cadastral_reference(geocode_response.lat, geocode_response.lng)
+            if cadastral_reference!= None:
+               print (f"    cadastral reference for {(geocode_response.lat, geocode_response.lng)} is {cadastral_reference}")
+            else:
+               print (f"    could not find cadastral reference for {(geocode_response.lat, geocode_response.lng)}")
 
             for listing in listings:
                listing["location"] = location
@@ -455,13 +346,35 @@ def get_listings():
 
 # ===========================================================================================================
 def main():
-   cadastral_reference = GZ.get_cadastral_data(41.39409684378864, 2.1487222098593293)
-   print ("cadastral_reference =", cadastral_reference)
-
-   cadastral_reference = GZ.get_cadastral_data(41.39409684378864, 2.1487222098593293)
-   print ("cadastral_reference =", cadastral_reference)
-   # get_listings()
+   get_listings()
    return ""
 
 if __name__ == "__main__":
    print(main())
+
+
+def Sedecatastro_test():
+   lat, lng = 41.39409684378864, 2.1487222098593293
+   expected = "8931108DF2883B"
+   cadastral_reference = Sedecatastro.get_cadastral_reference(lat, lng)
+   print (f"cadastral reference for {(lat, lng)} should be {expected}, recieved {cadastral_reference}")
+
+   lat, lng = 41.394096, 2.148722
+   expected = "8931108DF2883B"
+   cadastral_reference = Sedecatastro.get_cadastral_reference(lat, lng)
+   print (f"cadastral reference for {(lat, lng)} should be {expected}, recieved {cadastral_reference}")
+
+   lat, lng = 41.445460, 2.172483
+   expected = "1087308DF3818G"
+   cadastral_reference = Sedecatastro.get_cadastral_reference(lat, lng)
+   print (f"cadastral reference for {(lat, lng)} should be {expected}, recieved {cadastral_reference}")
+
+   lat, lng = 39.46744030137543, -0.3307932139520062
+   expected = "9722108YJ2792D"
+   cadastral_reference = Sedecatastro.get_cadastral_reference(lat, lng)
+   print ("cadastral_reference =", cadastral_reference)
+
+   lat, lng = 41.383864, 2.183984
+   expected = "''"
+   cadastral_reference = Sedecatastro.get_cadastral_reference(lat, lng)
+   print (f"cadastral reference for {(lat, lng)} should be {expected}, recieved {cadastral_reference}")
