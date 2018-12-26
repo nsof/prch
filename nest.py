@@ -93,12 +93,27 @@ def geocode(filter):
 class Sedecatastro:
 
    @staticmethod
-   def find_cadastral_reference_in_text(text):
-      start = text.find("PARCELA CATASTRAL")
+   def find_plot_cadastral_reference_in_text(text):
+      text_anchor = "PARCELA CATASTRAL"
+      start = text.find(text_anchor)
       if start == -1:
          return None
 
-      start = start + len("PARCELA CATASTRAL")
+      start = start + len(text_anchor)
+      end = text.find('<', start)
+
+      cadastral_reference = text[start:end]
+      cadastral_reference = cadastral_reference.strip()
+      return cadastral_reference
+
+   @staticmethod
+   def find_a_single_cadastral_reference_in_text(text):
+      text_anchor = 'target="_top" >'
+      start = text.find(text_anchor)
+      if start == -1:
+         return None
+
+      start = start + len(text_anchor)
       end = text.find('<', start)
 
       cadastral_reference = text[start:end]
@@ -150,7 +165,9 @@ class Sedecatastro:
          if len(response.history) > 0:
             cadastral_reference = Sedecatastro.find_cadastral_reference_in_redirected_url(response.url)
          else:
-            cadastral_reference = Sedecatastro.find_cadastral_reference_in_text(response.text)
+            cadastral_reference = Sedecatastro.find_a_single_cadastral_reference_in_text(response.text)
+            if cadastral_reference == None:
+               cadastral_reference = Sedecatastro.find_plot_cadastral_reference_in_text(response.text)
 
       except Exception as e:
          print ("Failed to get catasral reference number")
@@ -344,14 +361,6 @@ def get_listings():
 
    return
 
-# ===========================================================================================================
-def main():
-   get_listings()
-   return ""
-
-if __name__ == "__main__":
-   print(main())
-
 
 def Sedecatastro_test():
    lat, lng = 41.39409684378864, 2.1487222098593293
@@ -378,3 +387,13 @@ def Sedecatastro_test():
    expected = "''"
    cadastral_reference = Sedecatastro.get_cadastral_reference(lat, lng)
    print (f"cadastral reference for {(lat, lng)} should be {expected}, recieved {cadastral_reference}")
+
+
+# ===========================================================================================================
+def main():
+   Sedecatastro_test()
+   # get_listings()
+   return ""
+
+if __name__ == "__main__":
+   print(main())
