@@ -364,35 +364,35 @@ def get_listings():
 
 def Sedecatastro_test():
    lat, lng = 41.39409684378864, 2.1487222098593293
-   expected = "8931108DF2883B"
+   expected = "8931108DF2883B0001SO"
    cadastral_reference = Sedecatastro.get_cadastral_reference(lat, lng)
    print (f"cadastral reference for {(lat, lng)} should be {expected}, recieved {cadastral_reference}")
 
    lat, lng = 41.394096, 2.148722
-   expected = "8931108DF2883B"
+   expected = "8931108DF2883B0001SO"
    cadastral_reference = Sedecatastro.get_cadastral_reference(lat, lng)
    print (f"cadastral reference for {(lat, lng)} should be {expected}, recieved {cadastral_reference}")
 
    lat, lng = 41.445460, 2.172483
-   expected = "1087308DF3818G"
+   expected = "1087308DF3818G0001XI"
    cadastral_reference = Sedecatastro.get_cadastral_reference(lat, lng)
    print (f"cadastral reference for {(lat, lng)} should be {expected}, recieved {cadastral_reference}")
 
    lat, lng = 39.46744030137543, -0.3307932139520062
-   expected = "9722108YJ2792D"
+   expected = "9722108YJ2792D0002SA"
    cadastral_reference = Sedecatastro.get_cadastral_reference(lat, lng)
-   print ("cadastral_reference =", cadastral_reference)
+   print (f"cadastral reference for {(lat, lng)} should be {expected}, recieved {cadastral_reference}")
 
    lat, lng = 41.383864, 2.183984
-   expected = "''"
+   expected = "1819806DF3811H0001QD"
    cadastral_reference = Sedecatastro.get_cadastral_reference(lat, lng)
    print (f"cadastral reference for {(lat, lng)} should be {expected}, recieved {cadastral_reference}")
 
 
 # ===========================================================================================================
 def main():
-   Sedecatastro_test()
-   # get_listings()
+   # Sedecatastro_test()
+   get_listings()
    return ""
 
 if __name__ == "__main__":
