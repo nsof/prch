@@ -62,31 +62,31 @@ def get_queries(file_name):
 # ===========================================================================================================
 
 def geocode(filter):
-   # url = 'https://maps.googleapis.com/maps/api/geocode/json?'
-   # parameters = {"address": f"{filter.location}", "key": "AIzaSyDto4pHmSEjqEzBZZZXBI7GjJnsBqedGPo"}
-   # parameters = urllib.parse.urlencode(parameters)
-   # req_url = url + parameters
-   # response = urllib.request.urlopen(req_url)
-   # response_string = response.read()
    url = 'https://maps.googleapis.com/maps/api/geocode/json'
    parameters = {"address": f"{filter.location}", "key": "AIzaSyDto4pHmSEjqEzBZZZXBI7GjJnsBqedGPo"}
-   response = requests.get(url, params = parameters)
-   json_results = response.json()
+   geocode_response = None
 
-   if json_results['status'] != 'OK':
-      print(f"geocoding location '{filter.location}' failed with status: {json_results['status']}")
+   try:
+      response = requests.get(url, params = parameters)
+      json_results = response.json()
+
+      if json_results['status'] != 'OK':
+         print(f"geocoding location '{filter.location}' failed with status: {json_results['status']}")
+         return None
+      
+      geometry = json_results["results"][0]["geometry"]
+
+      geocode_response = GeocodeResponse()
+      geocode_response.lat = geometry["location"]["lat"]
+      geocode_response.lng = geometry["location"]["lng"]
+      geocode_response.accuracy = geometry["location_type"]
+      for address_component in json_results["results"][0]["address_components"]:
+         if address_component["types"][0] == "postal_code":
+            geocode_response.postal_code = address_component["long_name"]
+   
+   except Exception:
       return None
    
-   geometry = json_results["results"][0]["geometry"]
-
-   geocode_response = GeocodeResponse()
-   geocode_response.lat = geometry["location"]["lat"]
-   geocode_response.lng = geometry["location"]["lng"]
-   geocode_response.accuracy = geometry["location_type"]
-   for address_component in json_results["results"][0]["address_components"]:
-      if address_component["types"][0] == "postal_code":
-         geocode_response.postal_code = address_component["long_name"]
-
    return geocode_response
 
 
@@ -311,7 +311,10 @@ def get_listings():
    queries = get_queries(input_file_name)
    print(f"Loaded {len(queries)} queries")
 
-   output_file, file_writer = get_file_writer()
+   output_file = None
+   if queries != None and len(queries) > 0:
+      output_file, file_writer = get_file_writer()
+   
    count = 0
 
    for query in queries:
@@ -326,6 +329,7 @@ def get_listings():
 
          geocode_response = geocode(filter)
          if geocode_response == None:  # geocoding failed
+            print (f"    could not geocode location. Continuing to next location")
             continue
 
          filter.lat = geocode_response.lat
@@ -334,7 +338,7 @@ def get_listings():
 
          if len(listings) != 0:
             cadastral_reference = Sedecatastro.get_cadastral_reference(geocode_response.lat, geocode_response.lng)
-            if cadastral_reference!= None:
+            if cadastral_reference != None:
                print (f"    cadastral reference for {(geocode_response.lat, geocode_response.lng)} is {cadastral_reference}")
             else:
                print (f"    could not find cadastral reference for {(geocode_response.lat, geocode_response.lng)}")
@@ -347,16 +351,17 @@ def get_listings():
 
             file_writer.writerows(listings)
             output_file.flush()
+            os.fsync(output_file.fileno())
             print("    Saved to file")
             count += len(listings)
-
          
       except Exception as e:
-         print ("something threw an exception" + str(e))
-         pass
+         print (f"    something threw an exception {str(e)}. Continuing to next query")
 
-   output_file.close()
-   print(f"Total {count} listings for all locations")
+   if output_file != None:
+      output_file.close()
+      print(f"Total {count} listings for all locations")
+   
    print("--- DONE! ---")
 
    return
