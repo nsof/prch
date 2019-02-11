@@ -2,3 +2,5 @@ py -m venv .venv
 .venv\Scripts\activate
 py -m pip install --upgrade pip
 pip install -r requirements.txt
+
+C:\Users\david\AppData\Local\Programs\Python\Python36\Scripts\pyinstaller.exe --onedir --paths C:\dev\nest\nest\.venv\Lib\site-packages nest.py
