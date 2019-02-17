@@ -25,8 +25,9 @@ def get_queries(file_name):
 
 # ===========================================================================================================
 def create_filter_from_query(query):
-    location = query["location"]
-    if location == "":
+    location = (None if query["location"] == "" else query["location"])
+    catastro = (None if query["catastro"] == "" else query["catastro"])
+    if location == None and catastro == None:
         return None
 
     size_min = (None if query["size_min"] == "" else int(float(query["size_min"])))
@@ -34,7 +35,7 @@ def create_filter_from_query(query):
     price_min = (None if query["price_min"] == "" else int(float(query["price_min"])))
     price_max = (None if query["price_max"] == "" else int(float(query["price_max"])))
     radius = None if query["radius"] == "" else float(query["radius"])
-    filter = Filter(location, size_min, size_max, price_min, price_max, radius=radius)
+    filter = Filter(location, catastro, size_min, size_max, price_min, price_max, radius=radius)
     return filter
 
 
@@ -87,18 +88,20 @@ def get_listings():
             if listings == None or len(listings) == 0:
                 continue
 
-            print(f"--- Searching for cadastral reference ---")
-            cadastral_reference = sw.get_cadastral_reference(filter.lat, filter.lng)
-            if cadastral_reference != None:
-                print(f"    cadastral reference for {(geocode_response.lat, geocode_response.lng)} is {cadastral_reference}")
-            else:
-                print(f"    could not find cadastral reference for {(geocode_response.lat, geocode_response.lng)}")
+            catastral_reference = filter.catastro
+            if catastral_reference == None:
+                print(f"--- Searching for catastral reference ---")
+                catastral_reference = sw.get_catastral_reference(filter.lat, filter.lng)
+                if catastral_reference != None:
+                    print(f"    catastral reference for {(geocode_response.lat, geocode_response.lng)} is {catastral_reference}")
+                else:
+                    print(f"    could not find catastral reference for {(geocode_response.lat, geocode_response.lng)}")
 
             for listing in listings:
                 listing.location = filter.location
                 listing.postal_code = geocode_response.postal_code
                 listing.geocode_accuracy = geocode_response.accuracy
-                listing.catastro = cadastral_reference
+                listing.catastro = catastral_reference
 
             for listing in listings:
                 file_writer.writerow(vars(listing))

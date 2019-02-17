@@ -1,7 +1,8 @@
 
 class Filter:
-   def __init__(self, location, size_min=None, size_max=None, price_min=None, price_max=None, lng=None, lat=None, radius=None, days_ago=None):
+   def __init__(self, location, catastro=None, size_min=None, size_max=None, price_min=None, price_max=None, lng=None, lat=None, radius=None, days_ago=None):
       self.location = location
+      self.catastro = catastro
       self.size_min = size_min
       self.size_max = size_max
       self.price_min = price_min

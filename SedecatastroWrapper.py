@@ -1,125 +1,48 @@
 import requests
+from lxml import html
 
-
-def _find_address_in_text(text):
-    text_anchor = "Localización"
-    start = text.find(text_anchor, text.find(text_anchor) + len(text_anchor))
-    if start == -1:
-        return None
-    start += len(text_anchor)
-    text_anchor = "<label"
-    start = text.find(text_anchor, start)
-    if start == -1:
-        return None
-    start += len(text_anchor)
-    text_anchor = ">"
-    start = text.find(text_anchor, start)
-    if start == -1:
-        return None
-    start += 1
-    end = text.find("</l", start)
-    if end == -1:
-        return None
-
-    address = text[start:end]
-    address = address.replace("<br>", " ")
-    address = address.replace("(", ",")
-    address = address.replace(")", "")
-    address = address.strip()
+def _find_address_in_html(text):
+    doc = html.fromstring(text)
+    section_title_elements = doc.cssselect("#ctl00_Contenido_tblFinca > div > span")
+    address = None
+    for section_title_element in section_title_elements:
+        if section_title_element.text == "Localización":
+            address = section_title_element.getnext().text_content()
+            address = address.replace("(", ",")
+            address = address.replace(")", "")
+            address = address.strip()
+            break
     return address
-
-
-def _find_plot_catastral_reference_in_text(text):
-    text_anchor = "PARCELA CATASTRAL"
-    start = text.find(text_anchor)
-    if start == -1:
-        return None
-
-    start = start + len(text_anchor)
-    end = text.find("<", start)
-
-    catastral_reference = text[start:end]
-    catastral_reference = catastral_reference.strip()
-    return catastral_reference
-
-
-def _find_a_single_catastral_reference_in_text(text):
-    text_anchor = 'target="_top" >'
-    start = text.find(text_anchor)
-    if start == -1:
-        return None
-
-    start = start + len(text_anchor)
-    end = text.find("<", start)
-
-    catastral_reference = text[start:end]
-    catastral_reference = catastral_reference.strip()
-    return catastral_reference
-
-
-def _find_catastral_reference_in_redirected_url(text):
-    start = text.find("RefC=")
-    if start == -1:
-        return None
-
-    start = start + len("RefC=")
-    end = text.find("&", start)
-
-    catastral_reference = text[start:end]
-    catastral_reference = catastral_reference.strip()
-    return catastral_reference
 
 
 def get_address(catastral_reference):
     try:
         url = "https://www1.sedecatastro.gob.es/CYCBienInmueble/OVCBusqueda.aspx"
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36",
         }
-        parameters = {
-            "fromVolver": "ListaBienes", 
-            "pest" : "rc",
-            "RCCompleta": catastral_reference,
-            "tipoVia" : "",
-            "via" : "",
-            "num" : "",
-            "blq" : "",
-            "esc" : "",
-            "plt" : "",
-            "pta" : "",
-            "descProv" : "",
-            "prov" : "",
-            "mun" : "",
-            "descMuni" : "",
-            "TipUR" : "",
-            "codVia" : "",
-            "comVia" : "",
-            "final" : "",
-            "pol" : "",
-            "par" : "",
-            "Idufir" : "",
-            "latitud" : "",
-            "longitud" : "",
-            "gradoslat" : "",
-            "minlat" : "",
-            "seglat" : "",
-            "gradoslon" : "",
-            "minlon" : "",
-            "seglon" : "",
-            "x" : "",
-            "y" : "",
-            "huso" : "",
-            "tipoCoordenadas" : ""
+        session = requests.Session()
+        session.headers = headers
+        response = session.get(url)
+        doc = html.fromstring(response.text)
+        form = doc.forms[0]
+
+        payload = {
+            "__VIEWSTATE" : form.inputs["__VIEWSTATE"].value,
+            "__VIEWSTATEGENERATOR" : form.inputs["__VIEWSTATEGENERATOR"].value,
+            "__EVENTVALIDATION" : form.inputs["__EVENTVALIDATION"].value,
+            "ctl00$Contenido$pestañaActual" : "rc",
+            "ctl00$Contenido$txtRC2" : catastral_reference,
+            "ctl00$Contenido$btnDatos" : "DATOS",
         }
 
-        session = requests.Session()
-        response = session.post(url, params=parameters, headers=headers)
+        response = session.post(url, headers=headers, data=payload)
 
         if response.status_code != 200:
             print(f"Failed to get address from {response.request.url}")
             return None
 
-        address = _find_address_in_text(response.text)
+        address = _find_address_in_html(response.text)
 
     except Exception as e:
         print("Failed to get address from catasral reference")
@@ -129,17 +52,34 @@ def get_address(catastral_reference):
     return address
 
 
+def _find_a_catastral_reference_in_html(text):
+    doc = html.fromstring(text)
+    first_catastral_reference_anchor_element = doc.cssselect("#heading0 > b > a")
+    catastral_reference = None
+
+    if first_catastral_reference_anchor_element != None and len(first_catastral_reference_anchor_element) > 0:
+        catastral_reference = first_catastral_reference_anchor_element[0].text_content().strip()
+
+    if catastral_reference == None or len(catastral_reference) < 20:
+        #find plot's catastral reference
+        main_heading_element = doc.cssselect("#ctl00_Contenido_HtmlTodos > div > div.panel-heading.amarillo")
+        if main_heading_element != None and len(main_heading_element) > 0:
+            catastral_reference = main_heading_element[0].text_content()
+            catastral_reference = catastral_reference.replace("PARCELA CATASTRAL", "")
+            catastral_reference = catastral_reference.strip()
+        else:
+            yet_another_case_element = doc.cssselect("#ctl00_Contenido_tblInmueble > div:nth-child(1) > div > span > label")
+            if yet_another_case_element != None and len(yet_another_case_element) > 0:
+                catastral_reference = yet_another_case_element[0].text_content().strip()
+            
+
+    return catastral_reference
+
+
 def get_catastral_reference(lat, lng):
     try:
         url = "https://www1.sedecatastro.gob.es/CYCBienInmueble/OVCListaBienes.aspx"
         headers = {
-            # "Accept" : "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
-            # "Accept-Encoding" : "gzip, deflate, br"
-            # Accept-Language: en-GB,en;q=0.9,en-US;q=0.8,he;q=0.7
-            # Connection: keep-alive
-            # Cookie: ASP.NET_SessionId=kirnbuffprhok1yfobovdpk5; Lenguaje=es
-            # Host: www1.sedecatastro.gob.es
-            # Upgrade-Insecure-Requests: 1
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36"
         }
         parameters = {
@@ -158,12 +98,7 @@ def get_catastral_reference(lat, lng):
             print(f"Failed to get catasral reference number from {response.request.url}")
             return None
 
-        if len(response.history) > 0:
-            catastral_reference = _find_catastral_reference_in_redirected_url(response.url)
-        else:
-            catastral_reference = _find_a_single_catastral_reference_in_text(response.text)
-            if catastral_reference == None:
-                catastral_reference = _find_plot_catastral_reference_in_text(response.text)
+        catastral_reference = _find_a_catastral_reference_in_html(response.text)
 
     except Exception as e:
         print("Failed to get catasral reference number")
@@ -173,7 +108,7 @@ def get_catastral_reference(lat, lng):
     return catastral_reference
 
 
-def test_find_address_in_text():
+def test_find_address_in_html():
     text = (
         ' <DIV class="form-group"><span class="col-md-4 control-label ">Referencia catastral</span><DIV class="col-md-8 "><span class="control-label black"><label  class="control-label black text-left">1819806DF3811H0001QD&nbsp;<span data-toggle="tooltip" data-placement="bottom" title="Copiar referencia catastral al portapapeles"><a href="javascript:copiarPortapapeles("1819806DF3811H0001QD")" ><span class="fa fa-clipboard"></span></a></span>&nbsp;&nbsp;&nbsp;<span data-toggle="tooltip" data-placement="bottom" title="Obtener etiqueta"> <a href="javascript:abreVentanaCodBar()"  ><span class="glyphicon glyphicon-barcode" ></span></a></span></label></span></DIV></DIV><DIV class="form-group"><span class="col-md-4 control-label ">Localización</span><DIV class="col-md-8 "><span class="control-label black"><label  class="control-label black text-left">AV MARQUES DE L'
         'ARGENTERA 5<br>08003 BARCELONA (BARCELONA)</label></span></DIV></DIV><DIV class="form-group"><span class="col-md-4 control-label ">Clase</span><DIV class="col-md-8 "><span class="control-label black"><label  class="control-label black text-left">Urbano</label></span></DIV></DIV><DIV class="form-group"><span class="col-md-4 control-label ">Uso principal</span><DIV class="col-md-8 "><span class="control-label black"><label  class="control-label black text-left">Residencial</label></span></DIV></DIV><DIV class="form-group"><span class="col-md-4 control-label ">Superficie construida <a href="" data-toggle="modal" data-target=".bs-example-modal-sm "><span class="glyphicon glyphicon-info-sign gray9"></span></a></span><DIV class="col-md-8 "><span class="control-label black"><label  class="control-label black text-left">1.740 m<sup>2</sup></label></span></DIV></DIV><DIV class="form-group"><span class="col-md-4 control-label ">Año construcción </span><DIV class="col-md-8 "><span class="control-label black"><label  class="control-label black text-left"> 2009</label></span></DIV></DIV></div> '
@@ -184,7 +119,7 @@ def test_find_address_in_text():
     )
 
     expected = "AV MARQUES DE L'ARGENTERA 5 BARCELONA ,BARCELONA"
-    address = _find_address_in_text(text)
+    address = _find_address_in_html(text)
     print (f"addresses { 'match' if expected == address else 'do not match'}")
     print(f'address should be\n"{expected}", recieved\n"{address}"')
 
@@ -193,43 +128,31 @@ def test_get_address():
     catastral_reference = "1819806DF3811H0001QD"
     expected = "AV MARQUES DE L'ARGENTERA 5 BARCELONA ,BARCELONA"
     actual = get_address(catastral_reference)
-
-    print(f'Address for {catastral_reference} should be {expected}, recieved {actual}')
+    print (f"addresses { 'match' if expected == actual else 'do not match'}")
+    print(f'address should be\n"{expected}", recieved\n"{actual}"')
 
     catastral_reference = "9722108YJ2792D0002SA"
     expected = "CL JOSE BENLLIURE 119 VALENCIA ,VALENCIA"
-    actual = get_address(catastral_reference)
-    print(f'Address for {catastral_reference} should be {expected}, recieved {actual}')
+    print (f"addresses { 'match' if expected == actual else 'do not match'}")
+    print(f'address should be\n"{expected}", recieved\n"{actual}"')
 
+
+def test_single_get_catastral_reference(lat, lng, expected):
+    catastral_reference = get_catastral_reference(lat, lng)
+    if catastral_reference == expected:
+        print(f"catastral reference which was retrieved for {(lat, lng)} matched the expected {expected}")
+    else:    
+        print(f"catastral reference which was retrieved for {(lat, lng)} does NOT match the expected. Should be {expected}, recieved {catastral_reference}")
 
 def test_get_catastral_reference():
-    lat, lng = 41.394_096_843_788_64, 2.148_722_209_859_329_3
-    expected = "8931108DF2883B0001SO"
-    catastral_reference = get_catastral_reference(lat, lng)
-    print(f"catastral reference for {(lat, lng)} should be {expected}, recieved {catastral_reference}")
-
-    lat, lng = 41.394_096, 2.148_722
-    expected = "8931108DF2883B0001SO"
-    catastral_reference = get_catastral_reference(lat, lng)
-    print(f"catastral reference for {(lat, lng)} should be {expected}, recieved {catastral_reference}")
-
-    lat, lng = 41.445_460, 2.172_483
-    expected = "1087308DF3818G0001XI"
-    catastral_reference = get_catastral_reference(lat, lng)
-    print(f"catastral reference for {(lat, lng)} should be {expected}, recieved {catastral_reference}")
-
-    lat, lng = 39.467_440_301_375_43, -0.330_793_213_952_006_2
-    expected = "9722108YJ2792D0002SA"
-    catastral_reference = get_catastral_reference(lat, lng)
-    print(f"catastral reference for {(lat, lng)} should be {expected}, recieved {catastral_reference}")
-
-    lat, lng = 41.383_864, 2.183_984
-    expected = "1819806DF3811H0001QD"
-    catastral_reference = get_catastral_reference(lat, lng)
-    print(f"catastral reference for {(lat, lng)} should be {expected}, recieved {catastral_reference}")
-
+    test_single_get_catastral_reference(41.39409684378864, 2.1487222098593293, "8931108DF2883B0001SO")
+    test_single_get_catastral_reference(41.394096, 2.148722, "8931108DF2883B0001SO")
+    test_single_get_catastral_reference(41.445460, 2.172483, "1087308DF3818G0001XI")
+    test_single_get_catastral_reference(41.383864, 2.183984, "1819806DF3811H0001QD")
+    test_single_get_catastral_reference(39.46744030137543, -0.3307932139520062, "9722108YJ2792D0002SA")
+ 
 if __name__ == "__main__":
-    # test_find_address_in_text()
-    test_get_address()
-    # test_get_catastral_reference()
+    # test_find_address_in_html()
+    # test_get_address()
+    test_get_catastral_reference()
 
