@@ -13,8 +13,8 @@ from Listing import Listing
 
 ############################################################################################################
 # ===========================================================================================================
-def get_queries(file_name):
-    # filed_names = ["location", "size_min", "size_max", "price_min", "price_max", "radius"]
+def load_queries(file_name):
+    # fieled_names = ["location", "catastro", "size_min", "size_max", "price_min", "price_max", "radius"]
     queries = []
     with open(file_name, "r", newline="", encoding="utf-8") as input_file:
         file_reader = csv.DictReader(input_file)
@@ -34,10 +34,16 @@ def create_filter_from_query(query):
     size_max = (None if query["size_max"] == "" else int(float(query["size_max"])))
     price_min = (None if query["price_min"] == "" else int(float(query["price_min"])))
     price_max = (None if query["price_max"] == "" else int(float(query["price_max"])))
-    radius = None if query["radius"] == "" else float(query["radius"])
-    filter = Filter(location, catastro, size_min, size_max, price_min, price_max, radius=radius)
-    return filter
+    radius = (None if query["radius"] == "" else float(query["radius"]))
 
+    filter = Filter(location=location, 
+                    catastro=catastro, 
+                    size_min=size_min, 
+                    size_max=size_max, 
+                    price_min=price_min, 
+                    price_max=price_max, 
+                    radius=radius)
+    return filter
 
 # ===========================================================================================================
 def get_listings_from_data_sources(filter):
@@ -49,16 +55,70 @@ def get_listings_from_data_sources(filter):
 
     return listings
 
+# ===========================================================================================================
+def get_listings_for_query(query):
+    print("-------------------------------------------------------------------------------------")
+    print(f"Searching listings for query {query}")
+    print("-------------------------------------------------------------------------------------")
+
+    try:
+        filter = create_filter_from_query(query)
+        if filter == None:
+            print (f"skippping query {query}")
+            return None
+
+        if filter.location == None: # then there must be a catastro
+            print("location was not specified. getting from catastro...", end="")
+            filter.location = sw.get_address(filter.catastro)
+            if filter.location == None:
+                print("could not find location from catastro. skipping query")
+                return None
+            else:
+                print(f"got location {filter.location}")
+        
+        print(f"geocoding location...", end="")
+        geocode_response = Geocode.geocode(filter.location)
+        if geocode_response == None:  # geocoding failed
+            print("could not geocode location. Skipping query")
+            return None
+        else:
+            print(f"got the following coordinates ({geocode_response.lat}','{geocode_response.lng})")
+
+        filter.lat = geocode_response.lat
+        filter.lng = geocode_response.lng
+
+        listings = get_listings_from_data_sources(filter)
+        if listings == None or len(listings) == 0:
+            return None
+
+        if filter.catastro == None:
+            print(f"Searching for catastral reference... ",end="")
+            filter.catastro = sw.get_catastral_reference(filter.lat, filter.lng)
+            if filter.catastro != None:
+                print(f"catastral reference for {(geocode_response.lat, geocode_response.lng)} is {filter.catastro}")
+            else:
+                print(f"could not find catastral reference for {(geocode_response.lat, geocode_response.lng)}")
+
+        for listing in listings:
+            listing.location = filter.location
+            listing.postal_code = geocode_response.postal_code
+            listing.geocode_accuracy = geocode_response.accuracy
+            listing.catastro = filter.catastro
+    
+        return listings
+
+    except Exception as e:
+        print(f"Something threw an exception. Error message: {str(e)}")
+    
+    return None
 
 # ===========================================================================================================
-def get_listings():
-    print("=========================================================================================")
-    input_file_name = "queries.csv"
-    queries = get_queries(input_file_name)
+def get_listings(input_file_name):
 
-    if queries == None or len(queries) == 0:
+    queries = load_queries(input_file_name)
+    if not queries:
         print(f"No queries were loaded")
-        return []
+        return
 
     print(f"Loaded {len(queries)} queries")
 
@@ -67,72 +127,40 @@ def get_listings():
 
     for query in queries:
         try:
-            filter = create_filter_from_query(query)
-            if filter == None:
-                print (f"skippping query {query}")
+            listings = get_listings_for_query(query)
+            if not listings:
                 continue
-
-            print("-------------------------------------------------------------------------------------")
-            print(f"Searching for listings centered on '{filter.location}' with radius of {filter.radius}m, price in [{filter.price_min if filter.price_min else ' '},{filter.price_max if filter.price_max else ' '}] and size in [{filter.size_min if filter.size_min else ' '},{filter.size_max if filter.size_max else ' '}]")
-            print("-------------------------------------------------------------------------------------")
-
-            geocode_response = Geocode.geocode(filter)
-            if geocode_response == None:  # geocoding failed
-                print(f"could not geocode location. Continuing to next location")
-                continue
-
-            filter.lat = geocode_response.lat
-            filter.lng = geocode_response.lng
-
-            listings = get_listings_from_data_sources(filter)
-            if listings == None or len(listings) == 0:
-                continue
-
-            catastral_reference = filter.catastro
-            if catastral_reference == None:
-                print(f"--- Searching for catastral reference ---")
-                catastral_reference = sw.get_catastral_reference(filter.lat, filter.lng)
-                if catastral_reference != None:
-                    print(f"    catastral reference for {(geocode_response.lat, geocode_response.lng)} is {catastral_reference}")
-                else:
-                    print(f"    could not find catastral reference for {(geocode_response.lat, geocode_response.lng)}")
-
-            for listing in listings:
-                listing.location = filter.location
-                listing.postal_code = geocode_response.postal_code
-                listing.geocode_accuracy = geocode_response.accuracy
-                listing.catastro = catastral_reference
 
             for listing in listings:
                 file_writer.writerow(vars(listing))
+
             output_file.flush()
             os.fsync(output_file.fileno())
-            print(f"--- Saved {len(listings)} listings for current location to file")
+            print(f"Saved {len(listings)} listings for current location to file")
             count += len(listings)
 
         except Exception as e:
-            print(f"    something threw an exception {str(e)}. Continuing to next query")
+            print(f"Something threw an exception. Error message: {str(e)}")
 
     if output_file != None:
         output_file.close()
         print(f"Total {count} listings for all locations")
 
     print("=== DONE! ===")
-
     return
 
 
 # ===========================================================================================================
 def main():
-    get_listings()
+    get_listings("queries.csv")
 
 
 def test_file_writer():
     listing = Listing()
     listing.location = "Avinguda Diagonal 20, Barcelona"
+    listing.catastro = "9722108YJ2792D0002SA"
     listing.postal_code = "12345"
     listing.geocode_accuracy = "Rooftop"
-    listing.catastro = "9722108YJ2792D0002SA"
     listing.source = "Test"
     listing.price = 654321
     listing.size = 105
@@ -160,13 +188,47 @@ def test_file_writer():
 
 
 def test_get_listings_from_data_sources():
-    filter = Filter("Carrer d'en Carabassa, 2, Barcelona, Spain")
-    filter.radius = 50
-    get_listings_from_data_sources(filter)
+    # filter = Filter(location="Ciutat vella, Valencia, Spain", price_max=100000, radius=50)
+    filter = Filter(location = "la rambla, barcelona, Spain")
+    filter.lat = "41.381472"
+    filter.lng = "2.172750"
+    filter.radius = 300
+    filter.price_max = 200000
+    results = get_listings_from_data_sources(filter)
+    print (results)
+
+
+def test_get_listings_for_query():
+    query = {
+        "location": "Carrer de berenguer mallol 40, Valencia",
+        "catastro": "",
+        "size_min": "",
+        "size_max": "",
+        "price_min": "",
+        "price_max": "",
+        "radius": "300"
+    }
+    results = get_listings_for_query(query)
+    print (f"Got {len(results)} results")
+
+    query = {
+        "location": "",
+        "catastro": "8931108DF2883B0001SO",
+        "size_min": "",
+        "size_max": "",
+        "price_min": "",
+        "price_max": "",
+        "radius": "200"
+    }
+    results = get_listings_for_query(query)
+    print (f"Got {len(results)} results")
+
+def tests():
+    test_get_listings_for_query()
+    # test_get_listings_from_data_sources()
+    # test_file_writer()
 
 
 if __name__ == "__main__":
-    # test_get_listings_from_data_sources()
-    # test_file_writer()
+    # tests()
     main()
-

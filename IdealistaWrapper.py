@@ -96,7 +96,7 @@ class IdealistaWrapper:
         print(f"--- Searching Idealista ---")
 
         if filter.lat == None or filter.lng == None:
-            print (f"    Cant search idealista without geo coded location")
+            print (f"    Cant search idealista without geocoded location")
             return []
 
         url = IdealistaWrapper._BASE_URL + "/3.5/es/search"

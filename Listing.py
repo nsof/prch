@@ -4,10 +4,10 @@ import datetime
 class Listing:
     def __init__(self):
         self.location = None
+        self.catastro = None
         self.source = None
         self.postal_code = None
         self.geocode_accuracy = None
-        self.catastro = None
         self.price = None
         self.size = None
         self.rooms = None
@@ -36,10 +36,10 @@ class Listing:
         output_file = open(file_name, "w", newline="", encoding="utf-8")
         field_names = [
             "location",
-            "postal_code",
-            "geocode_accuracy",
             "catastro",
             "source",
+            "postal_code",
+            "geocode_accuracy",
             "price",
             "size",
             "rooms",

@@ -7,7 +7,12 @@ def _find_address_in_html(text):
     address = None
     for section_title_element in section_title_elements:
         if section_title_element.text == "Localización":
-            address = section_title_element.getnext().text_content()
+            enclosing_element = section_title_element.getnext().find(".//label")
+            street = enclosing_element.text
+            br_element = enclosing_element.find("br")
+            city = br_element.tail
+            # address = section_title_element.getnext().text_content()
+            address = street + ", " + city
             address = address.replace("(", ",")
             address = address.replace(")", "")
             address = address.strip()
@@ -125,16 +130,26 @@ def test_find_address_in_html():
 
 
 def test_get_address():
-    catastral_reference = "1819806DF3811H0001QD"
-    expected = "AV MARQUES DE L'ARGENTERA 5 BARCELONA ,BARCELONA"
+    catastral_reference = "8931108DF2883B0001SO"
+    expected = "AV DIAGONAL 572, BARCELONA ,BARCELONA"
     actual = get_address(catastral_reference)
-    print (f"addresses { 'match' if expected == actual else 'do not match'}")
-    print(f'address should be\n"{expected}", recieved\n"{actual}"')
+    print(f"test get_address for catastro {catastral_reference}")
+    print(f'address should be\n\t"{expected}"\nrecieved\n\t"{actual}"')
+    print(f"addresses { 'match' if expected == actual else 'do not match'}")
+
+    catastral_reference = "1819806DF3811H0001QD"
+    expected = "AV MARQUES DE L'ARGENTERA 5, BARCELONA ,BARCELONA"
+    actual = get_address(catastral_reference)
+    print(f"test get_address for catastro {catastral_reference}")
+    print(f'address should be\n\t"{expected}"\nrecieved\n\t"{actual}"')
+    print(f"addresses { 'match' if expected == actual else 'do not match'}")
 
     catastral_reference = "9722108YJ2792D0002SA"
-    expected = "CL JOSE BENLLIURE 119 VALENCIA ,VALENCIA"
-    print (f"addresses { 'match' if expected == actual else 'do not match'}")
-    print(f'address should be\n"{expected}", recieved\n"{actual}"')
+    expected = "CL JOSE BENLLIURE 119, VALENCIA ,VALENCIA"
+    actual = get_address(catastral_reference)
+    print(f"test get_address for catastro {catastral_reference}")
+    print(f'address should be\n\t"{expected}"\nrecieved\n\t"{actual}"')
+    print(f"addresses { 'match' if expected == actual else 'do not match'}")
 
 
 def test_single_get_catastral_reference(lat, lng, expected):
@@ -153,6 +168,6 @@ def test_get_catastral_reference():
  
 if __name__ == "__main__":
     # test_find_address_in_html()
-    # test_get_address()
-    test_get_catastral_reference()
+    test_get_address()
+    # test_get_catastral_reference()
 

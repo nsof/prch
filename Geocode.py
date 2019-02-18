@@ -8,9 +8,9 @@ class GeocodeResponse:
       self.postal_code = "Not found"
 
 
-def geocode(filter):
+def geocode(address):
    url = 'https://maps.googleapis.com/maps/api/geocode/json'
-   parameters = {"address": f"{filter.location}", "key": "AIzaSyDto4pHmSEjqEzBZZZXBI7GjJnsBqedGPo"}
+   parameters = {"address": f"{address}", "key": "AIzaSyDto4pHmSEjqEzBZZZXBI7GjJnsBqedGPo"}
    geocode_response = None
 
    try:
@@ -18,7 +18,7 @@ def geocode(filter):
       json_results = response.json()
 
       if json_results['status'] != 'OK':
-         print(f"geocoding location '{filter.location}' failed with status: {json_results['status']}")
+         print(f"geocoding location '{address}' failed with status: {json_results['status']}")
          return None
       
       geometry = json_results["results"][0]["geometry"]
