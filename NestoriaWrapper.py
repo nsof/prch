@@ -1,9 +1,10 @@
 import math
 import urllib
 import json
-from Listing import Listing
 import requests
-from Filter import Filter
+from Listing import Listing
+from Property import Property
+from Filter import PropertyFilter
 
 
 def _convert(nestoria_listing):
@@ -40,10 +41,10 @@ def _prepare_parameters(filter, page_size, page_number):
     parameters["pretty"] = 1
     parameters["number_of_results"] = page_size
     parameters["page"] = page_number
-    if filter.lat != None and filter.lng != None and filter.radius != None:
-        parameters["radius"] = f"{filter.lat},{filter.lng},{filter.radius/1000.0}km"
+    if filter.property.lattitude != None and filter.property.longitude != None and filter.radius != None:
+        parameters["radius"] = f"{filter.property.lattitude},{filter.property.longitude},{filter.radius/1000.0}km"
     else:
-        parameters["place_name"] = filter.location
+        parameters["place_name"] = filter.property.location
 
     if filter.price_max:
         parameters["price_max"] = filter.price_max
@@ -74,7 +75,7 @@ def search_listings_page(filter, page_size, page_number):
         # Check if API call worked
         if response.status_code != 200:
             if response.status_code == 400:
-                print(f"    - Bad request for {filter.location}. Check that this area is searchable on Nestoria website")
+                print(f"    - Bad request for {filter.property.location}. Check that this area is searchable on Nestoria website")
             elif response.status_code == 403:
                 print(f"    - API call was forbidden. Reached maximum calls")
             else:
@@ -109,7 +110,7 @@ def search_listings_page(filter, page_size, page_number):
 def search_all_listings(filter):
     print(f"--- Searching Nestoria ---")
 
-    if filter.location == None and (filter.lat == None or filter.lng == None):
+    if filter.property.location == None and (filter.property.latitude == None or filter.property.longitude == None):
         print(f"    location or (lat,lng) must be set to search nestoria")
         return []
 
@@ -151,7 +152,7 @@ def search_all_listings(filter):
         page_number += 1
 
     if len(listings) > 0:
-        print(f"    Total {len(listings)} listing for {filter.location}")
+        print(f"    Total {len(listings)} listing for {filter.property.location}")
 
     listings = [_convert(listing) for listing in listings]
     return listings
@@ -159,7 +160,8 @@ def search_all_listings(filter):
 
 import pprint
 def test_search_all_listings():
-    filter = Filter(location="Ciutat vella, Valencia, Spain", price_max=100000)
+    property = Property(location="Ciutat vella, Valencia, Spain")
+    filter = PropertyFilter(property, price_max=100000)
     results = search_all_listings(filter)
     pprint.pprint(results, width=1)
 

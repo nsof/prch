@@ -7,43 +7,27 @@ import pickle
 import SedecatastroWrapper as sw
 import NestoriaWrapper as nw
 from IdealistaWrapper import IdealistaWrapper as iw
-import Geocode
-from Filter import Filter
+from Filter import PropertyFilter
+from Property import Property
 from Listing import Listing
 
 ############################################################################################################
 # ===========================================================================================================
 def load_queries(file_name):
-    # fieled_names = ["location", "catastro", "size_min", "size_max", "price_min", "price_max", "radius"]
+    expected_field_names = ["location", "catastro", "size_min", "size_max", "price_min", "price_max", "radius"]
     queries = []
     with open(file_name, "r", newline="", encoding="utf-8") as input_file:
         file_reader = csv.DictReader(input_file)
+
+        for expected_field_name in expected_field_names:
+            if expected_field_name not in file_reader.fieldnames:
+                print("Expected '{expected_field_name}' to be a header in the queries file but it is not")
+                return None
+
         queries = [query for query in file_reader]
 
     return queries
 
-
-# ===========================================================================================================
-def create_filter_from_query(query):
-    location = (None if query["location"] == "" else query["location"])
-    catastro = (None if query["catastro"] == "" else query["catastro"])
-    if location == None and catastro == None:
-        return None
-
-    size_min = (None if query["size_min"] == "" else int(float(query["size_min"])))
-    size_max = (None if query["size_max"] == "" else int(float(query["size_max"])))
-    price_min = (None if query["price_min"] == "" else int(float(query["price_min"])))
-    price_max = (None if query["price_max"] == "" else int(float(query["price_max"])))
-    radius = (None if query["radius"] == "" else float(query["radius"]))
-
-    filter = Filter(location=location, 
-                    catastro=catastro, 
-                    size_min=size_min, 
-                    size_max=size_max, 
-                    price_min=price_min, 
-                    price_max=price_max, 
-                    radius=radius)
-    return filter
 
 # ===========================================================================================================
 def get_listings_from_data_sources(filter):
@@ -62,48 +46,23 @@ def get_listings_for_query(query):
     print("-------------------------------------------------------------------------------------")
 
     try:
-        filter = create_filter_from_query(query)
-        if filter == None:
-            print (f"skippping query {query}")
+        property = Property.from_query(query)
+        if property == None:
+            print (f"skippping query {query} because the input data (in file) has a problem")
             return None
-
-        if filter.location == None: # then there must be a catastro
-            print("location was not specified. getting from catastro...", end="")
-            filter.location = sw.get_address(filter.catastro)
-            if filter.location == None:
-                print("could not find location from catastro. skipping query")
-                return None
-            else:
-                print(f"got location {filter.location}")
         
-        print(f"geocoding location...", end="")
-        geocode_response = Geocode.geocode(filter.location)
-        if geocode_response == None:  # geocoding failed
-            print("could not geocode location. Skipping query")
-            return None
-        else:
-            print(f"got the following coordinates ({geocode_response.lat}','{geocode_response.lng})")
+        property.update_property_from_data_sources()
 
-        filter.lat = geocode_response.lat
-        filter.lng = geocode_response.lng
-
+        filter = PropertyFilter.from_query(property, query)
         listings = get_listings_from_data_sources(filter)
         if listings == None or len(listings) == 0:
             return None
 
-        if filter.catastro == None:
-            print(f"Searching for catastral reference... ",end="")
-            filter.catastro = sw.get_catastral_reference(filter.lat, filter.lng)
-            if filter.catastro != None:
-                print(f"catastral reference for {(geocode_response.lat, geocode_response.lng)} is {filter.catastro}")
-            else:
-                print(f"could not find catastral reference for {(geocode_response.lat, geocode_response.lng)}")
-
         for listing in listings:
-            listing.location = filter.location
-            listing.postal_code = geocode_response.postal_code
-            listing.geocode_accuracy = geocode_response.accuracy
-            listing.catastro = filter.catastro
+            listing.location = property.location
+            listing.postal_code = property.postal_code
+            listing.geocode_accuracy = property.geocode_accuracy
+            listing.catastro = property.catastro
     
         return listings
 
@@ -189,9 +148,10 @@ def test_file_writer():
 
 def test_get_listings_from_data_sources():
     # filter = Filter(location="Ciutat vella, Valencia, Spain", price_max=100000, radius=50)
-    filter = Filter(location = "la rambla, barcelona, Spain")
-    filter.lat = "41.381472"
-    filter.lng = "2.172750"
+    property = Property(location = "la rambla, barcelona, Spain")
+    property.latitude = "41.381472"
+    property.latitude = "2.172750"
+    filter = PropertyFilter(property = property)
     filter.radius = 300
     filter.price_max = 200000
     results = get_listings_from_data_sources(filter)

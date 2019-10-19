@@ -2,7 +2,8 @@ import json
 import requests
 import time
 from requests.auth import HTTPBasicAuth
-from Filter import Filter
+from Filter import PropertyFilter
+from Property import Property
 from Listing import Listing
 
 
@@ -42,7 +43,7 @@ class IdealistaWrapper:
         parameters = {}
         parameters["operation"] = "sale"
         parameters["propertyType"] = "homes"
-        parameters["center"] = f"{filter.lat},{filter.lng}"
+        parameters["center"] = f"{filter.property.latitude},{filter.property.longitude}"
         parameters["distance"] = f"{filter.radius}"
         if filter.price_min:
             parameters["minPrice"] = f"{filter.price_min}"
@@ -95,7 +96,7 @@ class IdealistaWrapper:
     def search_listings(filter):
         print(f"--- Searching Idealista ---")
 
-        if filter.lat == None or filter.lng == None:
+        if filter.property.latitude == None or filter.property.longitude == None:
             print (f"    Cant search idealista without geocoded location")
             return []
 
@@ -161,9 +162,10 @@ class IdealistaWrapper:
 
 def test_idealista_warapper():
     # url = "http://api.idealista.com/3.5/es/search?center=40.42938099999995,-3.7097526269835726&country=es&maxItems=500&numPage=1&distance=452&propertyType=bedrooms&operation=rent"
-    filter = Filter("Carrer d'en Carabassa, 2, Barcelona, Spain")
-    filter.lat = "41.3797412"
-    filter.lng = "2.179483"
+    property = Property(location="Ciutat vella, Valencia, Spain")
+    property.latitude = "41.3797412"
+    property.latitude = "2.179483"
+    filter = PropertyFilter(property)
     filter.radius = 50
     results = IdealistaWrapper.search_listings(filter)
     print(results)
