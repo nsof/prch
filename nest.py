@@ -5,7 +5,7 @@ import requests
 import os
 import pickle
 import SedecatastroWrapper as sw
-import NestoriaWrapper as nw
+from NestoriaWrapper import NestoriaWrapper as nw
 from IdealistaWrapper import IdealistaWrapper as iw
 from Filter import PropertyFilter
 from Property import Property
@@ -73,7 +73,6 @@ def get_listings_for_query(query):
 
 # ===========================================================================================================
 def get_listings(input_file_name):
-
     queries = load_queries(input_file_name)
     if not queries:
         print(f"No queries were loaded")
@@ -115,7 +114,9 @@ def main():
 
 
 def test_file_writer():
-    listing = Listing()
+    property = Property(location = "Avinguda Diagonal 20, Barcelona")
+    filter = PropertyFilter(property)
+    listing = Listing(filter)
     listing.location = "Avinguda Diagonal 20, Barcelona"
     listing.catastro = "9722108YJ2792D0002SA"
     listing.postal_code = "12345"
@@ -137,7 +138,7 @@ def test_file_writer():
     listing.country = "es"
     listing.latitude = 41.383864
     listing.longitude = 2.183984
-    listing.source_id = "ididididid"
+    listing.source_id = "testtest"
 
     output_file, file_writer = Listing.get_file_writer()
     file_writer.writerow(vars(listing))

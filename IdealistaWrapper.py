@@ -61,8 +61,8 @@ class IdealistaWrapper:
         return parameters
 
     @staticmethod    
-    def _convert(idealista_listing):
-        listing = Listing()
+    def _convert(idealista_listing, filter):
+        listing = Listing(filter)
         listing.source = "idealista"
         listing.price = idealista_listing["price"] if "price" in idealista_listing else None
         listing.size = idealista_listing["size"] if "size" in idealista_listing else None
@@ -156,7 +156,7 @@ class IdealistaWrapper:
         except Exception as e:
             print (f"    error searching idealista. response is {str(e)}")
 
-        listings = [IdealistaWrapper._convert(listing) for listing in listings]
+        listings = [IdealistaWrapper._convert(listing, filter) for listing in listings]
         return listings
 
 

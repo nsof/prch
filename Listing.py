@@ -2,7 +2,8 @@ import csv
 import datetime
 
 class Listing:
-    def __init__(self):
+    def __init__(self, filter):
+        self.fliter = filter
         self.location = None
         self.catastro = None
         self.source = None
