@@ -45,8 +45,8 @@ class NestoriaWrapper:
         parameters["pretty"] = 1
         parameters["number_of_results"] = page_size
         parameters["page"] = page_number
-        if filter.property.lattitude != None and filter.property.longitude != None and filter.radius != None:
-            parameters["radius"] = f"{filter.property.lattitude},{filter.property.longitude},{filter.radius/1000.0}km"
+        if filter.property.latitude != None and filter.property.longitude != None and filter.radius != None:
+            parameters["radius"] = f"{filter.property.latitude},{filter.property.longitude},{filter.radius/1000.0}km"
         else:
             parameters["place_name"] = filter.property.location
 
@@ -142,7 +142,7 @@ class NestoriaWrapper:
             if number_of_listings > 0:
                 print(f"  Got {len(page_listings)}/{expected_number_of_page_listings} listings", end="")
                 if page_number == 1:
-                    print(f" of total >>> {number_of_listings} <<< listings ", end="")
+                    print(f" of total >>> {number_of_listings} <<< listings. ", end="")
 
                 if len(page_listings) < page_size:
                     if len(page_listings) < expected_number_of_page_listings:

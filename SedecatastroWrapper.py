@@ -113,22 +113,6 @@ def get_catastral_reference(lat, lng):
     return catastral_reference
 
 
-def test_find_address_in_html():
-    text = (
-        ' <DIV class="form-group"><span class="col-md-4 control-label ">Referencia catastral</span><DIV class="col-md-8 "><span class="control-label black"><label  class="control-label black text-left">1819806DF3811H0001QD&nbsp;<span data-toggle="tooltip" data-placement="bottom" title="Copiar referencia catastral al portapapeles"><a href="javascript:copiarPortapapeles("1819806DF3811H0001QD")" ><span class="fa fa-clipboard"></span></a></span>&nbsp;&nbsp;&nbsp;<span data-toggle="tooltip" data-placement="bottom" title="Obtener etiqueta"> <a href="javascript:abreVentanaCodBar()"  ><span class="glyphicon glyphicon-barcode" ></span></a></span></label></span></DIV></DIV><DIV class="form-group"><span class="col-md-4 control-label ">Localización</span><DIV class="col-md-8 "><span class="control-label black"><label  class="control-label black text-left">AV MARQUES DE L'
-        'ARGENTERA 5<br>08003 BARCELONA (BARCELONA)</label></span></DIV></DIV><DIV class="form-group"><span class="col-md-4 control-label ">Clase</span><DIV class="col-md-8 "><span class="control-label black"><label  class="control-label black text-left">Urbano</label></span></DIV></DIV><DIV class="form-group"><span class="col-md-4 control-label ">Uso principal</span><DIV class="col-md-8 "><span class="control-label black"><label  class="control-label black text-left">Residencial</label></span></DIV></DIV><DIV class="form-group"><span class="col-md-4 control-label ">Superficie construida <a href="" data-toggle="modal" data-target=".bs-example-modal-sm "><span class="glyphicon glyphicon-info-sign gray9"></span></a></span><DIV class="col-md-8 "><span class="control-label black"><label  class="control-label black text-left">1.740 m<sup>2</sup></label></span></DIV></DIV><DIV class="form-group"><span class="col-md-4 control-label ">Año construcción </span><DIV class="col-md-8 "><span class="control-label black"><label  class="control-label black text-left"> 2009</label></span></DIV></DIV></div> '
-    )
-    text += (
-        ' <div id="ctl00_Contenido_tblFinca" class="col-md-10 form-horizontal">                        <DIV class="form-group"><DIV class="col-md-12"><span class="control-label black">Parcela construida sin división horizontal</span></DIV></DIV><DIV class="form-group"><span class="col-md-3 control-label ">Localización</span><DIV class="col-md-9 "><span class="control-label black"><label  class="control-label black text-left">AV MARQUES DE L'
-        'ARGENTERA 5<br>BARCELONA (BARCELONA)</label></span></DIV></DIV><DIV class="form-group"><span class="col-md-3 control-label ">Superficie gráfica</span><DIV class="col-md-9 "><span class="control-label black"><label  class="control-label black text-left">367 m<sup>2</sup></label></span></DIV></DIV></div> </div> </div>    '
-    )
-
-    expected = "AV MARQUES DE L'ARGENTERA 5 BARCELONA ,BARCELONA"
-    address = _find_address_in_html(text)
-    print (f"addresses { 'match' if expected == address else 'do not match'}")
-    print(f'address should be\n"{expected}", recieved\n"{address}"')
-
-
 def test_get_address():
     catastral_reference = "8931108DF2883B0001SO"
     expected = "AV DIAGONAL 572, BARCELONA ,BARCELONA"
@@ -167,7 +151,6 @@ def test_get_catastral_reference():
     test_single_get_catastral_reference(39.46744030137543, -0.3307932139520062, "9722108YJ2792D0002SA")
  
 if __name__ == "__main__":
-    # test_find_address_in_html()
     test_get_address()
-    # test_get_catastral_reference()
+    test_get_catastral_reference()
 
