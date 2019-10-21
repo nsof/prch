@@ -58,12 +58,6 @@ def get_listings_for_query(query):
         listings = get_listings_from_data_sources(filter)
         if listings == None or len(listings) == 0:
             return None
-
-        for listing in listings:
-            listing.location = property.location
-            listing.postal_code = property.postal_code
-            listing.geocode_accuracy = property.geocode_accuracy
-            listing.catastro = property.catastro
     
         return listings
 
@@ -111,13 +105,12 @@ def main():
 def test_get_listings_from_data_sources():
     # filter = PropertyFilter(location="Ciutat vella, Valencia, Spain", price_max=100000, radius=50)
     property = Property(location = "la rambla, barcelona, Spain")
-    property.latitude = "41.381472"
-    property.longitude = "2.172750"
     filter = PropertyFilter(property = property)
     filter.radius = 300
     filter.price_max = 200000
-    results = get_listings_from_data_sources(filter)
-    print (results)
+    listings = get_listings_from_data_sources(filter)
+    ListingWriter.write_listings(listings)
+    print (listings)
 
 
 def test_get_listings_for_query():
@@ -130,8 +123,9 @@ def test_get_listings_for_query():
         "price_max": "",
         "radius": "300"
     }
-    results = get_listings_for_query(query)
-    print (f"Got {len(results)} results")
+    listings = get_listings_for_query(query)
+    print (f"Got {len(listings)} results")
+    ListingWriter.write_listings(listings)
 
     query = {
         "location": "",
@@ -142,11 +136,12 @@ def test_get_listings_for_query():
         "price_max": "",
         "radius": "200"
     }
-    results = get_listings_for_query(query)
-    print (f"Got {len(results)} results")
+    listings = get_listings_for_query(query)
+    print (f"Got {len(listings)} results")
+    ListingWriter.write_listings(listings)
 
 def tests():
-    test_get_listings_from_data_sources()
+    #test_get_listings_from_data_sources()
     test_get_listings_for_query()
 
 
