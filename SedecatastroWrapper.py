@@ -1,10 +1,10 @@
 import requests
 from lxml import html
 
-def _find_address_in_html(text):
+def _find_location_in_html(text):
     doc = html.fromstring(text)
     section_title_elements = doc.cssselect("#ctl00_Contenido_tblFinca > div > span")
-    address = None
+    location = None
     for section_title_element in section_title_elements:
         if section_title_element.text == "Localización":
             enclosing_element = section_title_element.getnext().find(".//label")
@@ -12,15 +12,17 @@ def _find_address_in_html(text):
             br_element = enclosing_element.find("br")
             city = br_element.tail
             # address = section_title_element.getnext().text_content()
-            address = street + ", " + city
-            address = address.replace("(", ",")
-            address = address.replace(")", "")
-            address = address.strip()
+            location = street + ", " + city
+            location = location.replace("(", ",")
+            location = location.replace(")", "")
+            location = location.strip()
             break
-    return address
+    return location
 
+def _find_construction_year_in_html(text):
+    return ""
 
-def get_address(catastral_reference):
+def update_property_from_catastro(catastro, property):
     try:
         url = "https://www1.sedecatastro.gob.es/CYCBienInmueble/OVCBusqueda.aspx"
         headers = {
@@ -37,24 +39,26 @@ def get_address(catastral_reference):
             "__VIEWSTATEGENERATOR" : form.inputs["__VIEWSTATEGENERATOR"].value,
             "__EVENTVALIDATION" : form.inputs["__EVENTVALIDATION"].value,
             "ctl00$Contenido$pestañaActual" : "rc",
-            "ctl00$Contenido$txtRC2" : catastral_reference,
+            "ctl00$Contenido$txtRC2" : catastro,
             "ctl00$Contenido$btnDatos" : "DATOS",
         }
 
         response = session.post(url, headers=headers, data=payload)
 
         if response.status_code != 200:
-            print(f"Failed to get address from {response.request.url}")
-            return None
+            print(f"Failed to update property from sedecatastro. Url: {response.request.url}")
+            return False
 
-        address = _find_address_in_html(response.text)
+        property.location = _find_location_in_html(response.text)
+        property.construction_year = _find_construction_year_in_html(response.text)
+      
 
     except Exception as e:
-        print("Failed to get address from catasral reference")
+        print(f"Failed to update property from sedecatastro")
         print("Error message: ", e)
-        address = None
+        return False
 
-    return address
+    return True
 
 
 def _find_a_catastral_reference_in_html(text):
