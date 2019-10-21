@@ -1,0 +1,16 @@
+
+
+DB
+- write/update all results to a db
+- read properties and queries from db
+
+Web Interface
+- convert app to a web rest server
+- write an interface to specify paramters and view results
+
+Tests
+- put all tests in a separate directory of tests
+- have a parameter to just run tests
+
+Log messages
+- use a proper framework rather than print to console

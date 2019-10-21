@@ -4,7 +4,7 @@ import json
 import requests
 from Listing import Listing
 from Property import Property
-from Filter import PropertyFilter
+from PropertyFilter import PropertyFilter
 
 
 class NestoriaWrapper:

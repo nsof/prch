@@ -1,7 +1,7 @@
 from Property import Property
 
 class PropertyFilter:
-   def __init__(self, property, size_min=None, size_max=None, price_min=None, price_max=None, longitude=None, latitude=None, radius=None, days_ago=None):
+   def __init__(self, property, size_min=None, size_max=None, price_min=None, price_max=None, radius=None, days_ago=None):
       self.property = property
       self.size_min = size_min
       self.size_max = size_max

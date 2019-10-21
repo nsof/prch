@@ -2,14 +2,14 @@ import json
 import csv
 import re
 import requests
-import os
 import pickle
 import SedecatastroWrapper as sw
 from NestoriaWrapper import NestoriaWrapper as nw
 from IdealistaWrapper import IdealistaWrapper as iw
-from Filter import PropertyFilter
+from PropertyFilter import PropertyFilter
 from Property import Property
 from Listing import Listing
+from ListingWriter import ListingWriter
 
 ############################################################################################################
 # ===========================================================================================================
@@ -51,6 +51,7 @@ def get_listings_for_query(query):
             print (f"skippping query {query} because the input data (in file) has a problem")
             return None
         
+        # update location or catastro and geo location
         property.update_property_from_data_sources()
 
         filter = PropertyFilter.from_query(property, query)
@@ -71,6 +72,7 @@ def get_listings_for_query(query):
     
     return None
 
+
 # ===========================================================================================================
 def get_listings(input_file_name):
     queries = load_queries(input_file_name)
@@ -80,7 +82,6 @@ def get_listings(input_file_name):
 
     print(f"Loaded {len(queries)} queries")
 
-    output_file, file_writer = Listing.get_file_writer()
     count = 0
 
     for query in queries:
@@ -88,21 +89,15 @@ def get_listings(input_file_name):
             listings = get_listings_for_query(query)
             if not listings:
                 continue
-
-            for listing in listings:
-                file_writer.writerow(vars(listing))
-
-            output_file.flush()
-            os.fsync(output_file.fileno())
-            print(f"Saved {len(listings)} listings for current location to file")
+            ListingWriter.write_listings(listings)
             count += len(listings)
 
         except Exception as e:
             print(f"Something threw an exception. Error message: {str(e)}")
+    
+    ListingWriter.close_writer()
 
-    if output_file != None:
-        output_file.close()
-        print(f"Total {count} listings for all locations")
+    print(f"Got a total of {count} listings for all locations")
 
     print("=== DONE! ===")
     return
@@ -113,45 +108,11 @@ def main():
     get_listings("queries.csv")
 
 
-def test_file_writer():
-    property = Property(location = "Avinguda Diagonal 20, Barcelona")
-    filter = PropertyFilter(property)
-    listing = Listing(filter)
-    listing.location = "Avinguda Diagonal 20, Barcelona"
-    listing.catastro = "9722108YJ2792D0002SA"
-    listing.postal_code = "12345"
-    listing.geocode_accuracy = "Rooftop"
-    listing.source = "Test"
-    listing.price = 654321
-    listing.size = 105
-    listing.rooms = 3
-    listing.floor = 2
-    listing.bathrooms = 2
-    listing.property_type = "flat"
-    listing.updated_in_days = 10
-    listing.parking_spaces = 0
-    listing.url = "https://www.example.com/"
-    listing.address = "Carrer de les Corts, 25"
-    listing.neighborhood = "El Gotico"
-    listing.district = "barcelona"
-    listing.province = None
-    listing.country = "es"
-    listing.latitude = 41.383864
-    listing.longitude = 2.183984
-    listing.source_id = "testtest"
-
-    output_file, file_writer = Listing.get_file_writer()
-    file_writer.writerow(vars(listing))
-    output_file.flush()
-    os.fsync(output_file.fileno())
-    output_file.close()
-
-
 def test_get_listings_from_data_sources():
-    # filter = Filter(location="Ciutat vella, Valencia, Spain", price_max=100000, radius=50)
+    # filter = PropertyFilter(location="Ciutat vella, Valencia, Spain", price_max=100000, radius=50)
     property = Property(location = "la rambla, barcelona, Spain")
     property.latitude = "41.381472"
-    property.latitude = "2.172750"
+    property.longitude = "2.172750"
     filter = PropertyFilter(property = property)
     filter.radius = 300
     filter.price_max = 200000
@@ -185,11 +146,10 @@ def test_get_listings_for_query():
     print (f"Got {len(results)} results")
 
 def tests():
+    test_get_listings_from_data_sources()
     test_get_listings_for_query()
-    # test_get_listings_from_data_sources()
-    # test_file_writer()
 
 
 if __name__ == "__main__":
-    # tests()
-    main()
+    tests()
+    #main()

@@ -2,17 +2,6 @@ import Geo
 import SedecatastroWrapper as sw
 
 class Property:
-    @staticmethod
-    def from_query(query):
-        location = (None if query["location"] == "" else query["location"])
-        catastro = (None if query["catastro"] == "" else query["catastro"])
-        if location == None and catastro == None:
-            #one or the other has to be specified
-            return None
-
-        property = Property(location=location, catastro=catastro)
-        return property
-
     def __init__(self, location=None, catastro=None):
         self.location = location
         self.catastro = catastro
@@ -23,6 +12,17 @@ class Property:
 
     def __repr__(self):
         return str(self.__dict__)
+
+    @staticmethod
+    def from_query(query):
+        location = (None if query["location"] == "" else query["location"])
+        catastro = (None if query["catastro"] == "" else query["catastro"])
+        if location == None and catastro == None:
+            #one or the other has to be specified
+            return None
+
+        property = Property(location=location, catastro=catastro)
+        return property
 
 
     def update_property_from_data_sources(self):

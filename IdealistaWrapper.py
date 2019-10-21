@@ -2,7 +2,7 @@ import json
 import requests
 import time
 from requests.auth import HTTPBasicAuth
-from Filter import PropertyFilter
+from PropertyFilter import PropertyFilter
 from Property import Property
 from Listing import Listing
 
@@ -164,7 +164,7 @@ def test_idealista_warapper():
     # url = "http://api.idealista.com/3.5/es/search?center=40.42938099999995,-3.7097526269835726&country=es&maxItems=500&numPage=1&distance=452&propertyType=bedrooms&operation=rent"
     property = Property(location="Ciutat vella, Valencia, Spain")
     property.latitude = "41.3797412"
-    property.latitude = "2.179483"
+    property.longitude = "2.179483"
     filter = PropertyFilter(property)
     filter.radius = 50
     results = IdealistaWrapper.search_listings(filter)
