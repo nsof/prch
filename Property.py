@@ -23,6 +23,16 @@ class Property:
     def __repr__(self):
         return str(self.__dict__)
 
+    def _merge_from_cadastro_property(self, cadastro_property):
+        if self.location == None and cadastro_property.location != None:
+            self.location = cadastro_property.location
+        self.construction_year = cadastro_property.construction_year
+        self.stairs = cadastro_property.stairs
+        self.floor = cadastro_property.floor
+        self.door = cadastro_property.door
+        self.private_area = cadastro_property.private_area
+        self.common_area = cadastro_property.common_area
+
     @staticmethod
     def from_query(query):
         location = (None if query["location"] == "" else query["location"])
@@ -60,9 +70,9 @@ class Property:
 
         if self.location == None: # then there must be a catastro
             print("location was not specified. getting from catastro...", end="")
-            sw.update_property_from_catastro(self.catastro, self)
+            cadastro_property = sw.get_property_from_catastro(self.catastro)
             updated_from_catastro = True
-
+            self._merge_from_cadastro_property(cadastro_property)
             if self.location == None:
                 print("could not find location from catastro. skipping query")
                 return False
@@ -81,6 +91,7 @@ class Property:
                 print(f"could not find catastral reference for {(self.latitude, self.latitude)}")
 
         if self.catastro != None and updated_from_catastro == False:
-            sw.update_property_from_catastro(self.catastro, self)
+            cadastro_property = sw.get_property_from_catastro(self.catastro)
+            self._merge_from_cadastro_property(cadastro_property)
         
         return True
