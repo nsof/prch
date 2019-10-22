@@ -16,14 +16,18 @@ from ListingWriter import ListingWriter
 def load_queries(file_name):
     expected_field_names = ["location", "catastro", "size_min", "size_max", "price_min", "price_max", "radius"]
     queries = []
+    is_missing_a_field = False
+
     with open(file_name, "r", newline="", encoding="utf-8") as input_file:
         file_reader = csv.DictReader(input_file)
-        file_reader_field_names = [fr_fieldname.lower() for fr_fieldname in file_reader.fieldnames]
-
         for expected_field_name in expected_field_names:
-            if expected_field_name not in file_reader_field_names:
-                print(f"Expected '{expected_field_name}' to be a header in the queries file but it is not")
-                return None
+            if expected_field_name not in file_reader.fieldnames:
+                print(f"Expected '{expected_field_name}' to be a header in the queries file but it is not. might be case sensitivity or extra spaces.")
+                is_missing_a_field = True
+
+        if is_missing_a_field == True:
+            print(f"The expected fields are: [location, catastro, size_min, size_max, price_min, price_max, radius]. (other fields are simply ignored).")
+            return None
 
         queries = [query for query in file_reader]
 
