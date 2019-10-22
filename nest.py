@@ -59,7 +59,6 @@ def get_listings_for_query(query):
         # update location or catastro and geo location
         success = property.update_property_from_data_sources()
         if success == False:
-            print (f"Failed to update property from data sources. Skipping query")
             return None
 
         filter = PropertyFilter.from_query(property, query)

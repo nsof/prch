@@ -56,7 +56,7 @@ class Property:
             print("could not geocode location")
             return False
         else:
-            print(f"got the following coordinates ({geocode_response.lat}','{geocode_response.lng})")
+            print(f"got the following coordinates ({geocode_response.lat},{geocode_response.lng})")
 
         self.latitude = geocode_response.lat
         self.longitude = geocode_response.lng
@@ -95,3 +95,49 @@ class Property:
             self._merge_from_cadastro_property(cadastro_property)
         
         return True
+
+
+
+def test_update_property_from_data_sources():
+
+    print(f"Testing update_property_from_data_sources")
+
+    catastral_reference = "0038130YJ2794B0017UH"
+    location = "CL ANTONIO PONZ 120, VALENCIA, VALENCIA"
+    property = Property(catastro = catastral_reference)
+
+    success = property.update_property_from_data_sources()
+    if not success:
+        print(f"update_property_from_data_sources failed")
+        return
+
+    if property.location != location:
+        print(f"failed to get location reference")
+        return
+
+    if property.construction_year != "1966":
+        print(f"failed to get construction year correctly")
+        return
+
+    if property.private_area != "65":
+        print(f"failed to get private correctly")
+        return
+
+    property = Property(location = location)
+    success = property.update_property_from_data_sources()
+    if not success:
+        print(f"update_property_from_data_sources failed")
+        return
+
+    if property.catastro != catastral_reference:
+        print(f"failed to get catastral reference")
+        return
+
+
+
+def tests():
+    test_update_property_from_data_sources()
+
+
+if __name__ == "__main__":
+    tests()
