@@ -18,10 +18,11 @@ def load_queries(file_name):
     queries = []
     with open(file_name, "r", newline="", encoding="utf-8") as input_file:
         file_reader = csv.DictReader(input_file)
+        file_reader_field_names = [fr_fieldname.lower() for fr_fieldname in file_reader.fieldnames]
 
         for expected_field_name in expected_field_names:
-            if expected_field_name not in file_reader.fieldnames:
-                print("Expected '{expected_field_name}' to be a header in the queries file but it is not")
+            if expected_field_name not in file_reader_field_names:
+                print(f"Expected '{expected_field_name}' to be a header in the queries file but it is not")
                 return None
 
         queries = [query for query in file_reader]
@@ -149,5 +150,5 @@ def tests():
 
 
 if __name__ == "__main__":
-    tests()
-    #main()
+    #tests()
+    main()
