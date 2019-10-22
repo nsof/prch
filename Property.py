@@ -84,11 +84,11 @@ class Property:
 
         if self.catastro == None and self.latitude != None and self.longitude != None:
             print(f"Searching for catastral reference... ",end="")
-            self.catastro = sw.get_catastral_reference(self.latitude, self.latitude)
+            self.catastro = sw.get_catastral_reference(self.latitude, self.longitude)
             if self.catastro != None:
-                print(f"catastral reference for {(self.latitude, self.latitude)} is {self.catastro}")
+                print(f"catastral reference for {(self.latitude, self.longitude)} is {self.catastro}")
             else:
-                print(f"could not find catastral reference for {(self.latitude, self.latitude)}")
+                print(f"could not find catastral reference for {(self.latitude, self.longitude)}")
 
         if self.catastro != None and updated_from_catastro == False:
             cadastro_property = sw.get_property_from_catastro(self.catastro)
