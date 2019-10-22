@@ -16,6 +16,7 @@ class Property:
         self.construction_year = None
         self.stairs = None
         self.floor = None
+        self.door = None
         self.private_area = None
         self.common_area = None
 
