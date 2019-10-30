@@ -11,18 +11,18 @@ class ListingWriter:
     file_writer = None
     output_field_names = [
         # property output field names
-        "location",
-        "catastro",
-        "postal_code",
+        "property_location",
+        "property_catastro",
+        "property_postal_code",
         "property_latitude",
         "property_longitude",
-        "geocode_accuracy",
-        "construction_year",
-        "stairs",
-        "floor",
-        "door",
-        "private_area",
-        "common_area",
+        "property_geocode_accuracy",
+        "property_construction_year",
+        "property_stairs",
+        "property_floor",
+        "property_door",
+        "property_private_area",
+        "property_common_area",
         # listing output field names
         "source",
         "price",
@@ -64,18 +64,18 @@ class ListingWriter:
     def flatten_listing(listing):
         flat_listing = (vars(listing)).copy() #shallow copy is ok
         flat_listing.pop("filter")
-        flat_listing["location"] = listing.filter.property.location
-        flat_listing["catastro"] = listing.filter.property.catastro
-        flat_listing["postal_code"] = listing.filter.property.postal_code
-        flat_listing["geocode_accuracy"] = listing.filter.property.geocode_accuracy
+        flat_listing["property_location"] = listing.filter.property.location
+        flat_listing["property_catastro"] = listing.filter.property.catastro
+        flat_listing["property_postal_code"] = listing.filter.property.postal_code
+        flat_listing["property_geocode_accuracy"] = listing.filter.property.geocode_accuracy
         flat_listing["property_latitude"] = listing.filter.property.latitude
         flat_listing["property_longitude"] = listing.filter.property.longitude
-        flat_listing["construction_year"] = listing.filter.property.construction_year
-        flat_listing["stairs"] = listing.filter.property.stairs
-        flat_listing["floor"] = listing.filter.property.floor
-        flat_listing["door"] = listing.filter.property.door
-        flat_listing["private_area"] = listing.filter.property.private_area
-        flat_listing["common_area"] = listing.filter.property.common_area
+        flat_listing["property_construction_year"] = listing.filter.property.construction_year
+        flat_listing["property_stairs"] = listing.filter.property.stairs
+        flat_listing["property_floor"] = listing.filter.property.floor
+        flat_listing["property_door"] = listing.filter.property.door
+        flat_listing["property_private_area"] = listing.filter.property.private_area
+        flat_listing["property_common_area"] = listing.filter.property.common_area
         return flat_listing
 
     @staticmethod

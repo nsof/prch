@@ -1,6 +1,6 @@
 
 
-DB
+DB (can also be a google spreadsheet)
 - write/update all results to a db
 - read properties and queries from db
 
