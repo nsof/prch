@@ -37,7 +37,7 @@ def load_queries(file_name):
 # ===========================================================================================================
 def get_listings_from_data_sources(filter):
     nestoria_listings = nw.search_all_listings(filter)
-    idealista_listings = []#iw.search_listings(filter)
+    idealista_listings = iw.search_listings(filter)
     listings = []
     listings.extend(nestoria_listings)
     listings.extend(idealista_listings)
