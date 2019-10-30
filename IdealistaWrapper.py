@@ -121,7 +121,10 @@ class IdealistaWrapper:
 
                 if response.status_code > 200:
                     print (f"    error searching idealista. request was {response.url}. response is {str(response.text)}")
-                    if (response.status_code >= 402 and response.status_code < 500) and retried == False:
+                    if (response.status_code >= 429):
+                        print (f"    too many requests were sent to the server")
+                        break
+                    elif (response.status_code >= 402 and response.status_code < 500) and retried == False:
                         # invalid/expired token try reaquiring a new token
                         print (f"    trying to reaquire a new token")
                         token = IdealistaWrapper._get_auth_token(True)
