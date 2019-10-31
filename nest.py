@@ -3,6 +3,7 @@ import csv
 import re
 import requests
 import pickle
+import copy
 import SedecatastroWrapper as sw
 from NestoriaWrapper import NestoriaWrapper as nw
 from IdealistaWrapper import IdealistaWrapper as iw
@@ -36,11 +37,24 @@ def load_queries(file_name):
 
 # ===========================================================================================================
 def get_listings_from_data_sources(filter):
-    nestoria_listings = nw.search_all_listings(filter)
-    idealista_listings = iw.search_listings(filter)
     listings = []
-    listings.extend(nestoria_listings)
-    listings.extend(idealista_listings)
+
+    buy_filter = copy.deepcopy(filter)
+    buy_filter.type = "buy"
+
+    rent_filter = copy.deepcopy(filter)
+    rent_filter.type = "rent"
+    rent_filter.price_min = None
+    rent_filter.price_max = None
+
+    nestoria_buy_listings = nw.search_all_listings(buy_filter)
+    listings.extend(nestoria_buy_listings)
+
+    # idealista_listings = iw.search_listings(filter)
+    # listings.extend(idealista_listings)
+
+    nestoria_rent_listings = nw.search_all_listings(rent_filter)
+    listings.extend(nestoria_rent_listings)
 
     return listings
 

@@ -64,6 +64,7 @@ class IdealistaWrapper:
     def _convert(idealista_listing, filter):
         listing = Listing(filter)
         listing.source = "idealista"
+        listing.type = "buy"
         listing.price = idealista_listing["price"] if "price" in idealista_listing else None
         listing.size = idealista_listing["size"] if "size" in idealista_listing else None
         listing.rooms = idealista_listing["rooms"] if "rooms" in idealista_listing else None

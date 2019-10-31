@@ -1,11 +1,13 @@
 import math
-import urllib
 import json
 import requests
 from Listing import Listing
 from Property import Property
 from PropertyFilter import PropertyFilter
 
+
+# from requests.packages.urllib3.exceptions import InsecureRequestWarning
+# requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 class NestoriaWrapper:
 
@@ -39,12 +41,13 @@ class NestoriaWrapper:
         parameters = {}
         parameters["action"] = "search_listings"
         parameters["encoding"] = "json"
-        parameters["listing_type"] = "buy"
+        parameters["listing_type"] = filter.type
         parameters["sort"] = "newest"
         parameters["country"] = "es"
         parameters["pretty"] = 1
         parameters["number_of_results"] = page_size
         parameters["page"] = page_number
+
         if filter.property.latitude != None and filter.property.longitude != None and filter.radius != None:
             parameters["radius"] = f"{filter.property.latitude},{filter.property.longitude},{filter.radius/1000.0}km"
         else:
@@ -75,7 +78,7 @@ class NestoriaWrapper:
         
         try:
             parameters = NestoriaWrapper._prepare_parameters(filter, page_size, page_number)
-            response = requests.get(NESTORIA_API_URL, params=parameters, verify=False)
+            response = requests.get(NESTORIA_API_URL, params=parameters, verify=True)
 
             # Check if API call worked
             if response.status_code != 200:
@@ -114,7 +117,7 @@ class NestoriaWrapper:
 
     @staticmethod
     def search_all_listings(filter):
-        print(f"--- Searching Nestoria ---")
+        print(f"--- Searching Nestoria using this filter {filter}")
 
         if filter.property.location == None and (filter.property.latitude == None or filter.property.longitude == None):
             print(f"    location or (lat,lng) must be set to search nestoria")

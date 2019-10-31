@@ -3,7 +3,8 @@ class Listing:
 
     def __init__(self, filter):
         self.filter = filter
-        self.source = None
+        self.source = None # data source: nestoria / idealista
+        self.type = None # buy / rent
         self.price = None
         self.size = None
         self.rooms = None
@@ -21,7 +22,7 @@ class Listing:
         self.country = None
         self.latitude = None
         self.longitude = None
-        self.source_id = None
+        self.source_id = None # id in source
 
     def __repr__(self):
         return str(self.__dict__)

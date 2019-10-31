@@ -21,7 +21,9 @@ class Property:
         self.common_area = None
 
     def __repr__(self):
-        return str(self.__dict__)
+        return f"location: {self.location}, catastro: {self.catastro}, postal code: {self.postal_code}, lng: {self.longitude}, lat: {self.latitude}, " \
+            f"constuction year: {self.construction_year}, stairs: {self.stairs}, floor: {self.floor}, door: {self.door}, " \
+            f"private area: {self.private_area}, common area: {self.common_area}"
 
     def _merge_from_cadastro_property(self, cadastro_property):
         if self.location == None and cadastro_property.location != None:
@@ -50,7 +52,7 @@ class Property:
             print (f"cannot geocode location since there is no location for property", end="")
             return False
 
-        print(f"geocoding location...", end="")
+        print(f"geocoding location using Google's geocoding service...", end="")
         geocode_response = Geo.geocode(self.location)
         if geocode_response == None:  # geocoding failed
             print("could not geocode location")

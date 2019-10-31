@@ -25,6 +25,7 @@ class ListingWriter:
         "property_common_area",
         # listing output field names
         "source",
+        "type",
         "price",
         "size",
         "rooms",
@@ -76,6 +77,7 @@ class ListingWriter:
         flat_listing["property_door"] = listing.filter.property.door
         flat_listing["property_private_area"] = listing.filter.property.private_area
         flat_listing["property_common_area"] = listing.filter.property.common_area
+        flat_listing["type"] = listing.filter.type
         return flat_listing
 
     @staticmethod
@@ -103,6 +105,7 @@ def test_file_writer():
 
     listing = Listing(filter)
     listing.source = "Test"
+    listing.type = "rent"
     listing.price = 654321
     listing.size = 105
     listing.rooms = 3
