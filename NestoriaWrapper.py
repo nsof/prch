@@ -15,6 +15,7 @@ class NestoriaWrapper:
     def _convert(nestoria_listing, filter):
         listing = Listing(filter)
         listing.source = "nestoria"
+        listing.type = nestoria_listing["listing_type"] if "listing_type" in nestoria_listing else None
         listing.price = nestoria_listing["price"] if "price" in nestoria_listing else None
         listing.size = nestoria_listing["size"] if "size" in nestoria_listing else None
         listing.rooms = nestoria_listing["bedroom_number"] if "bedroom_number" in nestoria_listing else None
@@ -117,7 +118,7 @@ class NestoriaWrapper:
 
     @staticmethod
     def search_all_listings(filter):
-        print(f"--- Searching Nestoria using this filter {filter}")
+        print(f"-- Searching Nestoria --")
 
         if filter.property.location == None and (filter.property.latitude == None or filter.property.longitude == None):
             print(f"    location or (lat,lng) must be set to search nestoria")

@@ -41,7 +41,12 @@ class IdealistaWrapper:
     @staticmethod
     def _get_query_parameters(filter):
         parameters = {}
-        parameters["operation"] = "sale"
+
+        if filter.type == "buy":
+            parameters["operation"] = "sale"
+        else:
+            parameters["operation"] = "rent"
+
         parameters["propertyType"] = "homes"
         parameters["center"] = f"{filter.property.latitude},{filter.property.longitude}"
         parameters["distance"] = f"{filter.radius}"
@@ -64,7 +69,15 @@ class IdealistaWrapper:
     def _convert(idealista_listing, filter):
         listing = Listing(filter)
         listing.source = "idealista"
-        listing.type = "buy"
+
+        if "operation" in idealista_listing:
+            if idealista_listing["operation"] == "rent":
+                listing.type = "rent"
+            else:
+                listing.type = "buy"
+        else:
+            listing.type = None
+
         listing.price = idealista_listing["price"] if "price" in idealista_listing else None
         listing.size = idealista_listing["size"] if "size" in idealista_listing else None
         listing.rooms = idealista_listing["rooms"] if "rooms" in idealista_listing else None
@@ -95,7 +108,7 @@ class IdealistaWrapper:
 
     @staticmethod    
     def search_listings(filter):
-        print(f"--- Searching Idealista ---")
+        print(f"-- Searching Idealista --")
 
         if filter.property.latitude == None or filter.property.longitude == None:
             print (f"    Cant search idealista without geocoded location")

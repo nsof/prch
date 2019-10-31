@@ -4,7 +4,7 @@ class Listing:
     def __init__(self, filter):
         self.filter = filter
         self.source = None # data source: nestoria / idealista
-        self.type = None # buy / rent
+        self.type = None
         self.price = None
         self.size = None
         self.rooms = None

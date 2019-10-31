@@ -77,7 +77,6 @@ class ListingWriter:
         flat_listing["property_door"] = listing.filter.property.door
         flat_listing["property_private_area"] = listing.filter.property.private_area
         flat_listing["property_common_area"] = listing.filter.property.common_area
-        flat_listing["type"] = listing.filter.type
         return flat_listing
 
     @staticmethod

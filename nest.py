@@ -42,26 +42,33 @@ def get_listings_from_data_sources(filter):
     buy_filter = copy.deepcopy(filter)
     buy_filter.type = "buy"
 
+    print(f"--- Searching data sources using this filter {buy_filter} ---")
+
+    nestoria_buy_listings = nw.search_all_listings(buy_filter)
+    listings.extend(nestoria_buy_listings)
+
+    idealista_buy_listings = iw.search_listings(buy_filter)
+    listings.extend(idealista_buy_listings)
+
     rent_filter = copy.deepcopy(filter)
     rent_filter.type = "rent"
     rent_filter.price_min = None
     rent_filter.price_max = None
 
-    nestoria_buy_listings = nw.search_all_listings(buy_filter)
-    listings.extend(nestoria_buy_listings)
-
-    # idealista_listings = iw.search_listings(filter)
-    # listings.extend(idealista_listings)
+    print(f"--- Searching data sources using this filter {rent_filter} ---")
 
     nestoria_rent_listings = nw.search_all_listings(rent_filter)
     listings.extend(nestoria_rent_listings)
+
+    idealista_rent_listings = iw.search_listings(rent_filter)
+    listings.extend(idealista_rent_listings)
 
     return listings
 
 # ===========================================================================================================
 def get_listings_for_query(query):
     print("-------------------------------------------------------------------------------------")
-    print(f"Searching listings for query {query}")
+    print(f"   Searching listings for query. location: {query['location']}, catastro: {query['catastro']}")
     print("-------------------------------------------------------------------------------------")
 
     try:
