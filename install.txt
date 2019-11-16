@@ -3,4 +3,4 @@ py -m venv .venv
 py -m pip install --upgrade pip
 pip install -r requirements.txt
 
-C:\Users\david\AppData\Local\Programs\Python\Python36\Scripts\pyinstaller.exe --onefile --paths C:\dev\nest\nest\.venv\Lib\site-packages nest.py
+C:\Users\david\AppData\Local\Programs\Python\Python36\Scripts\pyinstaller.exe --onefile --paths C:\dev\nest\prch\.venv\Lib\site-packages prch.py
