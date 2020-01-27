@@ -23,7 +23,7 @@ class PropertyFilter:
         self.days_ago = days_ago if days_ago != None else 183
 
     def __repr__(self):
-        return f"property: {self.property}, type: {self.type}, size_min: {self.size_min}, size_max: {self.size_min}, price_min: {self.price_min}, price_max: {self.price_min}, radius: {self.radius}, days_ago: {self.days_ago}"
+        return f"property: {self.property}, type: {self.type}, size_min: {self.size_min}, size_max: {self.size_max}, price_min: {self.price_min}, price_max: {self.price_max}, radius: {self.radius}, days_ago: {self.days_ago}"
 
     # no operator overlpading and hence need for some static methods to create objects
     @staticmethod
